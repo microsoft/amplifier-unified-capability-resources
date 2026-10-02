@@ -1,0 +1,12 @@
+{
+ "name":"@amplifier/unified-resources-capability",
+ "version":"0.1.0",
+ "type":"module",
+ "license":"MIT",
+ "description":"Scoped immutable Canvas resources for Amplifier Unified",
+ "exports":"./src/index.js",
+ "files":["src","README.md","LICENSE"],
+ "scripts":{"test":"node --test test/*.test.mjs"},
+ "engines":{"node":">=22.16"},
+ "dependencies":{"ajv":"^8.17.1"}
+}

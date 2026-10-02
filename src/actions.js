@@ -1,0 +1,20 @@
+const string=maxLength=>({type:'string',maxLength}),positive={type:'integer',minimum:1},stateRevision={type:'integer',minimum:0},anyObject={type:'object'};
+const identity={id:string(100),sessionId:string(8192)},cas={...identity,expectedRevision:positive,expectedStateRevision:stateRevision};
+const entry=(description,properties,required=[])=>({description,inputSchema:{type:'object',properties,required,additionalProperties:false}});
+export const actionSchemas={
+ 'canvas.show':entry('Save an immutable shared artifact in this conversation.',{kind:{enum:['text','markdown','code','html','mermaid','dot','json','jsonl','image','a2ui','browser','babylon']},title:string(200),content:string(6*1024*1024),path:string(8192),url:string(8192),surface:anyObject},['kind']),
+ 'canvas.openFile':entry('Read an existing workspace file into a shared artifact without changing its source.',{path:string(8192),kind:string(100),title:string(200)},['path']),
+ 'canvas.versions.inspect':entry('Inspect metadata and optionally the selected saved source.',{...identity,version:positive,includeSource:{type:'boolean'}},['id']),
+ 'canvas.versions.revise':entry('Create a new immutable artifact revision.',{...identity,expectedRevision:positive,title:string(200),content:string(6*1024*1024),surface:anyObject},['id','expectedRevision']),
+ 'canvas.versions.restore':entry('Restore a saved artifact definition as a new revision; never replay its effects.',{...identity,expectedRevision:positive,version:positive},['id','expectedRevision','version']),
+ 'canvas.reference':entry('Read an immutable artifact reference; draft insertion is a client operation.',{...identity,version:positive},['id']),
+ 'canvas.event':entry('Record an explicit shared declarative-surface event.',{...identity,surfaceId:string(200),componentId:string(200),name:string(200),value:{}},['id','name']),
+ 'canvas.apps.create':entry('Create a schema-governed interactive artifact.',{title:string(200),content:string(500000),manifest:anyObject,initialState:anyObject},['title','content','manifest','initialState']),
+ 'canvas.apps.inspect':entry('Inspect current shared app state and requests; private editing buffers remain on clients.',{...identity,includeSource:{type:'boolean'},requestId:string(100)},['id']),
+ 'canvas.apps.revise':entry('Refine the definition while preserving compatible shared state.',{...cas,content:string(500000),manifest:anyObject,title:string(200),migratedState:anyObject},['id','expectedRevision','expectedStateRevision','content']),
+ 'canvas.apps.restore':entry('Restore a definition while retaining compatible current state.',{...cas,version:positive,migratedState:anyObject},['id','expectedRevision','expectedStateRevision','version']),
+ 'canvas.apps.state':entry('Merge validated shared state fields after checking both revisions.',{...cas,patch:anyObject},['id','expectedRevision','expectedStateRevision','patch']),
+ 'canvas.apps.event':entry('Invoke an explicitly declared event.',{...cas,name:string(80),payload:anyObject},['id','expectedRevision','expectedStateRevision','name','payload']),
+ 'canvas.apps.request':entry('Queue a reviewable client effect; this never applies it.',{...cas,name:string(80),input:anyObject},['id','expectedRevision','expectedStateRevision','name','input']),
+ 'canvas.apps.resolve':entry('Decline a pending request. Approval must use the explicitly targeted client tool so its effect stays local.',{...cas,requestId:string(100),approve:{const:false}},['id','expectedRevision','expectedStateRevision','requestId','approve'])
+};

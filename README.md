@@ -1,0 +1,50 @@
+# Unified resources capability
+
+Optional independently packaged Canvas owner for `@amplifier/unified-host`.
+`createResourcesCapability({directory,inspectSession,onChanged})` exposes a
+capability manifest, `read`, `action`, a standard `resourceProvider` and `close`.
+Pass the host's authenticated action context to `action`; resolve session scope
+through public `host.inspectSession`, and forward `onChanged` to
+`host.invalidateCapability`. No native Python or client implementation is imported.
+
+`registerExternal({session,workingDirectory}, descriptor)` registers a bounded
+MCP view descriptor and its owned `amplifier-mcp:` body URI. Detailed bindings,
+documents, saved tool results and authorization stay with the MCP provider.
+Registration checks the trusted execution workspace and session; subsequent
+generic Canvas writes cannot modify another provider's resource. The same ID
+updates its saved descriptor without opening a duplicate view.
+
+Metadata pages default to 50 and cap at 200. An explicit `id`/`version` query reads
+one descriptor. Bodies are fetched only by their advertised URI. Definitions and
+app-state snapshots are immutable content-addressed files; SQLite indexes their
+ownership, versions and metadata. Writes sync body and directory before committing
+the index. Saved history is retained; this package does not delete native files.
+File viewing resolves symlinks inside the authorized execution workspace and caps
+source input at 4 MiB and saved bodies at 6 MiB (including JSON escaping). Standard resource writes require the advertised latest URI
+and an exact `ifMatch` value; conflicts preserve both stored versions and the
+client's unfinished input. Editing a saved artifact never writes its source file.
+
+CanvasApps have separate definition and state revisions. Declared events and
+state patches are validated against bounded JSON Schema; external references and
+regular expressions are excluded. Metadata includes neither shared state bodies
+nor editing buffers. Each selected body URI identifies an immutable state snapshot.
+Refinements require both revisions and retain compatible current shared state;
+restoring a definition never replays an event or client effect. Direct generic
+resource writes cannot bypass app schema validation.
+
+An approved local theme request uses `canvas.apps.resolve` in two phases. `claim`
+persists an unknown outcome and returns `result.effect={token,action,args}` to the
+authenticated calling client. The client durably records the token, applies its
+own local effect and sends `complete` with `token` and `outcome: applied|failed`.
+Completion is owner-bound and idempotent. A crash or lost reply never resubmits an
+unknown effect. Rejection is a normal shared-state update. The sandbox itself has
+no authority to claim requests. Host themes and client editing buffers are never
+mirrored by this provider.
+
+Run `npm ci && npm test`. Tests cover historical-body immutability, restart,
+conditional writes, scoped authorization, symlinks, metadata paging without body
+reads, shared state conflict/schema checks and client-effect admission/recovery.
+Browser integration belongs to the separately packaged web client. These tests
+do not qualify live MCP services, paid providers, device access or production
+history migration. Old artifact import and operational disk quotas remain explicit
+distribution responsibilities.
