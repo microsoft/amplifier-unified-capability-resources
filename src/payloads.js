@@ -33,13 +33,14 @@ export class HistoricalPayloads{
   const sources=new Map();for(const body of args.bodies){if(sources.has(body.id)||!seen.has(body.id)||typeof body.path!=='string')throw Error('Payload source identity differs from authenticated plan');sources.set(body.id,body.path);}
   const records=[];
   for(const expected of verified.bodies){
-   const source=await open(sources.get(expected.id),constants.O_RDONLY|constants.O_NOFOLLOW),temp=join(this.directory,randomUUID()+'.tmp'),target=await open(temp,'wx',0o600),chunks=[],whole=createHash('sha256');let position=0;
+   const source=await open(sources.get(expected.id),constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK),temp=join(this.directory,randomUUID()+'.tmp'),chunks=[],whole=createHash('sha256');let position=0,target;
    try{const before=await source.stat();if(!before.isFile()||before.size!==expected.size)throw Error('Historical payload source size changed');
+    target=await open(temp,'wx',0o600);
     const buffer=Buffer.alloc(CHUNK);while(position<expected.size){let filled=0,wanted=Math.min(CHUNK,expected.size-position);while(filled<wanted){const {bytesRead:n}=await source.read(buffer,filled,wanted-filled,position+filled);if(!n)throw Error('Historical payload ended early');filled+=n;}
      const raw=buffer.subarray(0,filled);whole.update(raw);chunks.push({sha256:hash(raw),bytes:filled});let written=0;while(written<filled){const {bytesWritten:n}=await target.write(raw,written,filled-written,position+written);if(!n)throw Error('Historical copy made no progress');written+=n;}position+=filled;
     }
     const after=await source.stat();if(before.mtimeMs!==after.mtimeMs||before.ctimeMs!==after.ctimeMs||whole.digest('hex')!==expected.sha256)throw Error('Historical payload source integrity mismatch');await target.sync();
-   }finally{await target.close();await source.close();}
+   }finally{try{await target?.close();}finally{await source.close();}}
    await rename(temp,join(this.directory,expected.sha256+'.blob'));records.push({id:expected.id,size:expected.size,sha256:expected.sha256,chunks});
   }
   const parent=openSync(this.directory,'r');try{fsyncSync(parent);}finally{closeSync(parent);}
@@ -50,7 +51,7 @@ export class HistoricalPayloads{
  async selected(args){await this.context(args.session);const row=this.db.prepare('SELECT p.* FROM transfer_payloads p JOIN transfer_evidence e ON e.id=p.id WHERE p.id=? AND e.session=? AND e.hash=?').get(args.transferId,args.session,args.evidenceHash);if(!row)throw Error('Activated historical payloads unavailable');const manifest=JSON.parse(row.binding);if(manifest.binding.planHash!==args.planHash)throw Error('Historical payload plan identity changed');return {binding:manifest.binding,records:JSON.parse(row.records)};}
  read=async args=>{const {binding,records}=await this.selected(args),offset=args.offset??0,limit=args.limit??25;if(!Number.isSafeInteger(offset)||offset<0||!Number.isSafeInteger(limit)||limit<1||limit>25)throw Error('Historical payload metadata pages require 1–25 records');const items=records.slice(offset,offset+limit).map(({chunks,...body})=>({...body,historicalOnly:true,executionAuthority:false}));return {binding,items,nextOffset:offset+items.length<records.length?offset+items.length:null,executionAuthority:false};};
  readBody=async args=>{const {records}=await this.selected(args),record=records.find(row=>row.id===args.resourceId),offset=args.offset??0,limit=args.maxBytes??CHUNK;if(!record||!Number.isSafeInteger(offset)||offset<0||offset>record.size||!Number.isSafeInteger(limit)||limit<1||limit>CHUNK)throw Error('Exact historical resource and bounded byte page required');
-  const fd=openSync(join(this.directory,record.sha256+'.blob'),constants.O_RDONLY|constants.O_NOFOLLOW);try{const before=fstatSync(fd);if(!before.isFile()||before.size!==record.size)throw Error('Historical payload storage changed');
+  const fd=openSync(join(this.directory,record.sha256+'.blob'),constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);try{const before=fstatSync(fd);if(!before.isFile()||before.size!==record.size)throw Error('Historical payload storage changed');
    const end=Math.min(record.size,offset+limit),parts=[];for(let index=Math.floor(offset/CHUNK);index<Math.ceil(end/CHUNK);index++){const expected=record.chunks[index],raw=Buffer.alloc(expected.bytes);if(readSync(fd,raw,0,raw.length,index*CHUNK)!==raw.length||hash(raw)!==expected.sha256)throw Error('Historical payload chunk integrity changed');parts.push(raw.subarray(Math.max(0,offset-index*CHUNK),Math.min(raw.length,end-index*CHUNK)));}
    const raw=Buffer.concat(parts);return {data:raw.toString('base64'),encoding:'base64',size:record.size,sha256:record.sha256,nextOffset:end<record.size?end:null,executionAuthority:false};
   }finally{closeSync(fd);}

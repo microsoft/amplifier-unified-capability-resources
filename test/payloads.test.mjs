@@ -26,3 +26,14 @@ test('in-flight and restarted unknown payload imports block activation and chang
   await assert.rejects(cap.activateTransferEvidence({session,transferId:'pending',evidenceHash:evidence.sha256,releaseHash:'b'.repeat(64)}),/pending or unknown/);await assert.rejects(cap.stageTransferPayloads({...args,planHash:'a'.repeat(64)}),/another plan/);assert.equal((await cap.stageTransferPayloads(args)).staged,true);
  }finally{release?.();cap.close();await rm(directory,{recursive:true,force:true});}
 });
+
+test('selected FIFO refuses promptly and settles owner work while retaining unknown import evidence',async()=>{
+ const {spawnSync}=await import('node:child_process');
+ const module=import.meta.resolve('../src/index.js');
+ const probe=spawnSync(process.execPath,['--input-type=module','-e',`
+ import assert from 'node:assert/strict';import {mkdtemp,rm,readdir} from 'node:fs/promises';import {tmpdir} from 'node:os';import {join} from 'node:path';import {execFileSync} from 'node:child_process';import {createHash} from 'node:crypto';import {createResourcesCapability} from ${JSON.stringify(module)};
+ const directory=await mkdtemp(join(tmpdir(),'payload-fifo-regression-')),path=join(directory,'selected-fifo');execFileSync('mkfifo',[path]);const session='ahp-session:/selected',cap=createResourcesCapability({directory:join(directory,'owner'),inspectSession:async session=>({session,workingDirectory:directory}),verifyTransferPayloadPlan:async request=>({owner:'unified.resources',...request,bodies:[{id:'fifo',size:0,sha256:createHash('sha256').update('').digest('hex')}]})});
+ try{const evidence=await cap.exportTransferEvidence({session,transferId:'fifo'});await cap.stageTransferEvidence({transferId:'fifo',sourceHost:'source',nativeSessionId:'native',evidence});const start=performance.now();await assert.rejects(cap.stageTransferPayloads({transferId:'fifo',sourceHost:'source',destinationHost:'destination',ownerRevision:evidence.revision,evidenceHash:evidence.sha256,planHash:'a'.repeat(64),bodies:[{id:'fifo',path}]}),/source size changed/);const elapsedMs=performance.now()-start;assert.ok(elapsedMs<1000);await assert.rejects(cap.activateTransferEvidence({session,transferId:'fifo',evidenceHash:evidence.sha256,releaseHash:'b'.repeat(64)}),/pending or unknown/);assert.deepEqual(await readdir(join(directory,'owner','historical-payloads')),[]);const lease=await cap.quiescenceParticipant().acquire({fenceId:'settled',commandId:'maintenance',purpose:'recovery',instanceId:'owned-instance',dataScope:'owned'});assert.ok(lease);console.log(JSON.stringify({fifoRefused:true,elapsedMs,effectSettled:true,maintenanceHeld:true,pendingImportPreserved:true}));}finally{cap.close();await rm(directory,{recursive:true,force:true});}
+ `],{encoding:'utf8',timeout:5000});
+ assert.equal(probe.status,0,probe.stderr||String(probe.error));assert.equal(JSON.parse(probe.stdout).effectSettled,true);
+});
