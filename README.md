@@ -131,3 +131,47 @@ original owner and remain explicitly classified on the retained source. The
 importer does not activate them, claim complete legacy feature migration, or
 restore old effect tokens. Exact original metadata remains in the destination
 import journal for successfully copied documents; private views stay client-owned.
+
+## Held owner intake fence
+
+`createResourcesCapability` also accepts `onMayBeIdle()` and returns
+`quiescenceParticipant(ownerId = 'resources')`, `inspectQuiescence()`, and
+`quiescenceAccess`. A dedicated feedback upload owner can register the same real
+participant using its own owner ID. The manifest marks only exact artifact/app
+inspection, saved references, and upload inspection as read actions. It does not
+infer safety from an action's name.
+
+Before opening resource journals, the owner acquires a separate private SQLite
+DELETE-journal lifetime `BEGIN EXCLUSIVE` lease. A second process cannot open the
+same store or run its offline importer. The OS releases this lease after SIGKILL;
+no PID file is deleted to reclaim ownership. The separate durable intake fence
+becomes `unknown` after restart and remains closed until trusted reconciliation.
+
+The participant atomically checks complete in-flight work and closes intake.
+It counts asynchronous capability actions, conditional resource writes, queued
+upload chunks and full-file commit validation, external MCP registration, and
+transfer export/stage/activation. Close refuses while that work is still active.
+The completion signal is advisory only; a waiting supervisor must acquire a new
+held lease rather than treating a notification as proof of idleness.
+
+Unfinished upload bytes and historical client-effect receipts remain on disk;
+they are not background executors. No owner job replays them. A held gate rejects
+new chunks, commits, Canvas events or changes, external registration, and transfer
+mutations. Immutable selected bodies, exact upload metadata and historical evidence
+remain readable. Client-local effects stay client-owned; a late acknowledgement
+cannot mutate shared owner state through a held gate.
+
+`acquire({fenceId,commandId,purpose,instanceId,dataScope})` uses the host participant
+contract, with purpose `recovery` or `distribution-update`. It returns a held
+lease or `null` for known active work. `release(outcome,proof)` and
+`reconcileRelease({...context,outcome,proof})` bind the exact owner and host fence.
+An unknown outcome keeps intake closed. A still-held lease may release after a
+known aggregate admission refusal with `{kind:'admission-refused'}` and outcome
+`unchanged`. Other releases require trusted supervisor proof containing
+`verified:true,fenceId,commandId,outcome,instanceId,dataScope,receiptId`; `unchanged`
+requires the prior host instance and `ready` a verified replacement. These methods
+are private composition ports, not browser actions.
+
+Offline legacy imports now require the destination owner to be closed and its
+retained intake fence released conclusively. This preserves later destination
+edits while preventing an importer from bypassing recovery ownership.

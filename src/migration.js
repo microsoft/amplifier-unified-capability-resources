@@ -49,7 +49,7 @@ export function importLegacyDocuments({database,destination,sourceSession,sessio
   const expression=overlay?"(SELECT CASE WHEN json_extract(value,'$.present') THEN json_extract(value,'$.value') ELSE '[]' END FROM state_records WHERE kind='global' AND id='canvasArtifacts')":"(SELECT COALESCE(json_extract(value,'$.canvasArtifacts'),'[]') FROM state WHERE id=1)";
   if(source.prepare(`SELECT json_type(${expression}) AS kind`).get().kind!=='array')throw Error('Legacy artifact list is malformed; source retained');
   const rows=source.prepare(`SELECT CAST(key AS INTEGER) AS position,json_extract(value,'$.id') AS id,length(CAST(value AS BLOB)) AS bytes,CASE WHEN length(CAST(value AS BLOB))<=? THEN value ELSE NULL END AS metadata FROM json_each(${expression}) WHERE json_extract(value,'$.sessionId')=? AND CAST(key AS INTEGER)>? ORDER BY CAST(key AS INTEGER) LIMIT ?`).all(MAX_METADATA,sourceSession,offset,limit+1);
-  store=new ResourceStore(destination);store.db.exec('CREATE TABLE IF NOT EXISTS legacy_document_imports(source TEXT NOT NULL,id TEXT NOT NULL,fingerprint TEXT NOT NULL,session TEXT NOT NULL,metadata TEXT NOT NULL,PRIMARY KEY(source,id))');
+  store=new ResourceStore(destination);store.quiescence.assertOpen();store.db.exec('CREATE TABLE IF NOT EXISTS legacy_document_imports(source TEXT NOT NULL,id TEXT NOT NULL,fingerprint TEXT NOT NULL,session TEXT NOT NULL,metadata TEXT NOT NULL,PRIMARY KEY(source,id))');
   const sourceId=sha(database+'\0'+sourceSession),items=[];
   for(const row of rows.slice(0,limit)){
    const outcome={id:row.id,sourcePosition:row.position,sourceRetained:true};

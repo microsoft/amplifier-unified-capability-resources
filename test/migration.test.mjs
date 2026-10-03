@@ -17,9 +17,10 @@ test('selected legacy versions retain exact bodies and messages, page and reimpo
  const f=fixture(t);f.save([f.row,{...f.row,id:'other-conversation',sessionId:'other'},{...f.row,id:'document-two'}]);f.close();const before=hash(readFileSync(f.args.database));
  const first=importLegacyDocuments({...f.args,limit:1});assert.equal(first.items.length,1);assert.equal(first.items[0].status,'imported');assert.ok(first.nextCursor);
  const second=importLegacyDocuments({...f.args,limit:1,after:first.nextCursor});assert.equal(second.items[0].id,'document-two');assert.equal(second.nextCursor,null);
- const owner=f.owner();try{const saved=await owner.action({topic:'canvas',operation:'canvas.versions.inspect',version:1,channel:f.args.session,args:{id:'document-one',version:1,includeSource:true}});assert.equal(saved.result.body.content,'original');assert.equal(saved.result.artifact.messageId,'human-one');
+ let owner=f.owner();try{const saved=await owner.action({topic:'canvas',operation:'canvas.versions.inspect',version:1,channel:f.args.session,args:{id:'document-one',version:1,includeSource:true}});assert.equal(saved.result.body.content,'original');assert.equal(saved.result.artifact.messageId,'human-one');
   await owner.action({topic:'canvas',operation:'canvas.versions.revise',version:1,channel:f.args.session,args:{id:'document-one',expectedRevision:2,content:'new destination work'}});
-  const replay=importLegacyDocuments({...f.args,limit:1});assert.equal(replay.items[0].status,'already-imported');assert.equal(owner.store.body(f.args.session,'document-one').content,'new destination work');
+  assert.throws(()=>importLegacyDocuments({...f.args,limit:1}),/already has an owner/);owner.close();
+  const replay=importLegacyDocuments({...f.args,limit:1});owner=f.owner();assert.equal(replay.items[0].status,'already-imported');assert.equal(owner.store.body(f.args.session,'document-one').content,'new destination work');
  }finally{owner.close();}
  assert.equal(hash(readFileSync(f.args.database)),before);
 });
