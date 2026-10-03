@@ -175,3 +175,10 @@ are private composition ports, not browser actions.
 Offline legacy imports now require the destination owner to be closed and its
 retained intake fence released conclusively. This preserves later destination
 edits while preventing an importer from bypassing recovery ownership.
+
+Release retry proof is immutable: the owner atomically retains the canonical
+outcome and entire proof with its released receipt. After acknowledgement loss
+or restart, only the identical context, outcome and proof are accepted; changing
+the receipt identity, authority scope or outcome is rejected. JSON object key
+order is irrelevant. Older released receipts without exact proof evidence are
+not inferred or rewritten into verified release evidence.
