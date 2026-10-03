@@ -50,3 +50,12 @@ test('undeclared operations, unsafe schemas, reserved keys and oversized input a
   await assert.rejects(f.act('state',{id,expectedRevision:1,expectedStateRevision:0,patch:{count:'x'.repeat(100001)}}),/size limit/);
  }finally{await f.close();}
 });
+
+test('small app edit and selection metadata never hydrate an unrelated saved app body',async()=>{
+ const {writeFile}=await import('node:fs/promises');const f=await fixture();try{const selected=await create(f),unrelated=(await f.act('create',{title:'Unrelated',content:'<div>unrelated</div>',manifest,initialState:{count:55}})).result;
+  const state=f.cap.store.db.prepare('SELECT hash FROM app_states WHERE artifact=? AND state_revision=0').get(unrelated.artifact.id);await writeFile(join(f.cap.store.blobs,state.hash+'.json'),'unrelated corrupt retained bytes');
+  const result=(await f.act('state',{id:selected.artifact.id,expectedRevision:1,expectedStateRevision:0,patch:{count:2}})).result;assert.equal(result.app.state.count,2);
+  const page=await f.cap.read({uri:'amplifier-capability://canvas',scope:session});assert.equal(page.data.canvasArtifacts.length,2);assert.equal((await f.cap.read({uri:'amplifier-capability://canvas?id='+unrelated.artifact.id,scope:session})).data.canvasArtifacts[0].id,unrelated.artifact.id);
+  await assert.rejects(f.cap.resourceProvider.read({uri:unrelated.artifact.bodyUri}),/integrity/);
+ }finally{await f.close();}
+});
