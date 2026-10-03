@@ -308,3 +308,41 @@ renderer readiness alone grants no effect-claim authority.
 This owner qualifies preservation, bounds and installed public consumers. Actual
 sandbox handshake, browser/device rendering, reversible presentation reset and real
 remote engine transport require the web/TUI/host owners' acceptance receipts.
+
+## Detached historical payload composition ports
+
+The optional `verifyTransferPayloadPlan` constructor callback is a **trusted
+embedding verifier**. It must authenticate the actual signed capsule, source and
+destination pairing, transfer identity, exact resource-owner revision/evidence hash,
+and plan SHA-256; audit all content-addressed plan pages/chunks; and return the
+complete authenticated resource-ID → `{size,sha256}` mapping. A caller-provided
+Boolean is refused. This callback is not a client action or a signature verifier
+implemented by this resource library. A test fixture callback does not qualify
+real signed product composition.
+
+`stageTransferPayloads({transferId,sourceHost,destinationHost,ownerRevision,
+evidenceHash,planHash,capsule,plan,bodies:[{id,path}]})` requires previously staged
+resource evidence. The verifier returns the same exact identity fields plus
+`owner:'unified.resources'` and `bodies:[{id,size,sha256}]`. The owner independently
+streams and hashes each selected regular non-symlink file into its inactive
+historical namespace. Bounds are 64 MiB/body, 1 GiB/selection and 500 selected
+bodies; chunks cap at 256 KiB. This is an immutable transfer copy, never a second
+mutable attachment authority. Source files are preserved.
+
+The import retains a durable pending binding before awaiting authentication/copy;
+interruption or verifier failure blocks activation, including after restart.
+Only an explicit identical-plan retry can finish that copy; there is no automatic
+retry. Changed plans refuse. Complete staging seals the exact mapping. Temporary
+or orphan copied files after interruption grant no authority.
+
+Trusted composition separately verifies the native signed release and calls
+`activateTransferEvidence` with the exact `payloadPlanHash`. Missing/mismatched plan
+binding refuses, and a pending/unknown import cannot activate. Only then may
+`readTransferPayloadMetadata({session,transferId,evidenceHash,planHash,offset,limit})`
+return up to 25 historical descriptors and
+`readTransferPayloadBody({...sameIdentity,resourceId,offset,maxBytes})` return up
+to 256 KiB of verified historical bytes. Reads validate exact ownership and saved
+chunk digests. No live resource URI is rewritten, app rendered, prompt submitted,
+attachment recreated or effect replayed. Availability does not imply execution
+compatibility. Detached composition with the actual portability library, signed
+capsules, native hosts and client renderers remains a distribution qualification.
