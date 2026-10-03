@@ -1,5 +1,9 @@
 # Unified resources capability
 
+Owner direction: [Vision](docs/VISION.md), [Contract v1](docs/CONTRACT.v1.md),
+and [agent entry point](AGENTS.md). These organize inherited approved promises;
+source and installed checks remain distinct from integrated acceptance.
+
 Optional independently packaged Canvas owner for `@amplifier/unified-host`.
 `createResourcesCapability({directory,inspectSession,onChanged})` exposes a
 capability manifest, `read`, `action`, a standard `resourceProvider` and `close`.
@@ -46,8 +50,8 @@ conditional writes, scoped authorization, symlinks, metadata paging without body
 reads, shared state conflict/schema checks and client-effect admission/recovery.
 Browser integration belongs to the separately packaged web client. These tests
 do not qualify live MCP services, paid providers, device access or production
-history migration. Old artifact import and operational disk quotas remain explicit
-distribution responsibilities.
+history migration. Reviewed offline legacy import is available through the separate migration entry
+point. Operational disk quotas remain an explicit distribution responsibility.
 
 ## Shared attachments
 
@@ -82,7 +86,7 @@ and `activateTransferEvidence` preserve immutable observations under owner
 byte-preserving envelope, paired source and signed release before calling them.
 Each transfer ID seals one export; repeating it cannot silently capture later
 changes. Exports cap at 8 MiB and 500 records. Remaining versions, external bodies,
-attachment bytes and effect history are declared as explicit omissions, requiring
+budget-exceeding attachment bytes and effect history are declared as explicit omissions, requiring
 preview acceptance rather than being represented as a complete transfer.
 
 Imports live separately from active Canvas artifacts, app state and attachments.
@@ -126,10 +130,10 @@ are classified as retained, never overwritten or reconstructed from a workspace
 file. Pages are bound to the source revision. Each artifact is bounded to 500
 versions and 32 MiB combined, with 512 KiB metadata and 6 MiB individual bodies.
 
-Interactive CanvasApps, external MCP artifacts and browser effects require their
-original owner and remain explicitly classified on the retained source. The
-importer does not activate them, claim complete legacy feature migration, or
-restore old effect tokens. Exact original metadata remains in the destination
+Interactive CanvasApps require the separate reviewed app importer described below;
+external MCP artifacts and browser effects remain explicitly classified on the
+retained source. The document importer does not activate them, claim complete
+legacy feature migration, or restore old effect tokens. Exact original metadata remains in the destination
 import journal for successfully copied documents; private views stay client-owned.
 
 ## Held owner intake fence
@@ -250,3 +254,136 @@ The allocation comes from the trusted host's native-reviewed managed allocation,
 Pending attachment uploads and CanvasApp requests protect selected conversations. Indexed file sources across all retained artifact versions protect an overlapping allocation, including cross-conversation sources and versions superseded by a detached current version. Imported artifact evidence is conservatively protected. Bodies are not loaded during inspection; self-contained copied inline content does not become an external file reference merely because its text mentions a path.
 
 Inspection uses bounded selected metadata or indexed overlap probes, not native transcripts, a global history projection, or worker/model startup. Existing retention-hide and service-stop lifecycles are unchanged. The package tests cover the independently installed owner transport and held/unknown/exact-release behavior; full host/native/browser disposal acceptance remains a composition responsibility.
+
+## Reviewed legacy interactive import
+
+`importLegacyApps` from the `/migration` entry point imports only selected legacy
+CanvasApps with reviewed exact metadata hashes. First call `importLegacyDocuments`
+as above: retained interactive records now include `metadataSha256`. Review the
+original definitions, state and session mapping, then supply
+`reviewed: {"original-artifact-id": "<metadataSha256>"}` to `importLegacyApps` with
+the same database/destination/session/workspace parameters. Its source-bound page
+cursor is separate from the document cursor. Changed review hashes or mappings
+refuse; identical repeats preserve subsequent destination edits.
+
+The importer checks every retained version-1 manifest and state schema. Original
+artifact IDs, definition revisions, state revisions, timestamps, publication links,
+definition bytes and saved state bytes remain retained. Compatible current state
+is copied into immutable owner snapshots. Historical events and completed requests
+remain in the exact source metadata journal, rather than becoming active requests
+or restored tokens. Any unresolved/unknown request, malformed version chain,
+missing/corrupt state, unsupported schema or conflicting identity stays on source.
+No HTML runs during import; no session starts or client effect replays. The source
+and destination remain separate and the destination must have no live owner.
+
+## Bounded attachment evidence and remote delivery
+
+Historical transfer now copies committed attachment bodies that fit the existing
+8 MiB envelope and 500-record limits, as verified binary evidence. The original
+size and SHA-256 accompany each body. Selected metadata pages omit body data;
+`readTransferBody` returns byte-exact base64 pages up to 256 KiB. Unfinished and
+budget-exceeding bodies remain explicit omissions. Imports remain inactive historical
+evidence and do not create executable attachments or remap old attachment URIs.
+
+For a remote ACP engine, trusted composition may explicitly choose
+`resolvePromptAttachment(context, attachment, {mode: 'remote-resource', resolveRemote})`.
+The callback receives immutable `{uri,name,mimeType,size,sha256,chunkBytes}` metadata
+and `read({offset,maxBytes})`, a session-scoped base64 reader capped at 256 KiB.
+The complete source is streamed and verified before invoking the callback. Transport
+must confirm `{uri,size,sha256}` for the exact resource; only HTTPS or explicitly
+supported `amplifier-attachment:` remote URIs are accepted, with no embedded user
+credentials. The returned standard ACP `resource_link` contains no local path or
+body. The host owns authentication, expiry, engine support and admission; this
+owner performs no implicit HTTP fetch. Lost transport results do not imply a turn
+was accepted and must not cause automatic model/tool replay.
+
+## Renderer acceptance boundary
+
+CanvasApp clients must negotiate support for manifest version 1 before executing
+HTML. Fetch the exact immutable `bodyUri` and bind the client-owned sandbox handshake
+to artifact ID, definition revision, state revision, iframe identity and a fresh
+client-local channel. Stale or unsupported renderers show an inspectable unavailable
+view; they must not mutate/rewrite the resource to reset presentation. Readiness,
+errors, editing buffers and reversible view reset remain client-owned. Requests
+from an old iframe must never target a newer selected resource. Existing body
+revisions and the owning capability's two-revision checks remain authoritative;
+renderer readiness alone grants no effect-claim authority.
+
+This owner qualifies preservation, bounds and installed public consumers. Actual
+sandbox handshake, browser/device rendering, reversible presentation reset and real
+remote engine transport require the web/TUI/host owners' acceptance receipts.
+
+## Detached historical payload composition ports
+
+The optional `verifyTransferPayloadPlan` constructor callback is a **trusted
+embedding verifier**. It must authenticate the actual signed capsule, source and
+destination pairing, transfer identity, exact resource-owner revision/evidence hash,
+and plan SHA-256; audit all content-addressed plan pages/chunks; and return the
+complete authenticated resource-ID → `{size,sha256}` mapping. A caller-provided
+Boolean is refused. This callback is not a client action or a signature verifier
+implemented by this resource library. A test fixture callback does not qualify
+real signed product composition.
+
+`stageTransferPayloads({transferId,sourceHost,destinationHost,ownerRevision,
+evidenceHash,planHash,capsule,plan,bodies:[{id,path}]})` requires previously staged
+resource evidence. The verifier returns the same exact identity fields plus
+`owner:'unified.resources'` and `bodies:[{id,size,sha256}]`. The owner independently
+streams and hashes each selected regular non-symlink file into its inactive
+historical namespace. Bounds are 64 MiB/body, 1 GiB/selection and 500 selected
+bodies; chunks cap at 256 KiB. This is an immutable transfer copy, never a second
+mutable attachment authority. Source files are preserved.
+
+The import retains a durable pending binding before awaiting authentication/copy;
+interruption or verifier failure blocks activation, including after restart.
+Only an explicit identical-plan retry can finish that copy; there is no automatic
+retry. Changed plans refuse. Complete staging seals the exact mapping. Temporary
+or orphan copied files after interruption grant no authority.
+
+Trusted composition separately verifies the native signed release and calls
+`activateTransferEvidence` with the exact `payloadPlanHash`. Missing/mismatched plan
+binding refuses, and a pending/unknown import cannot activate. Only then may
+`readTransferPayloadMetadata({session,transferId,evidenceHash,planHash,offset,limit})`
+return up to 25 historical descriptors and
+`readTransferPayloadBody({...sameIdentity,resourceId,offset,maxBytes})` return up
+to 256 KiB of verified historical bytes. Reads validate exact ownership and saved
+chunk digests. No live resource URI is rewritten, app rendered, prompt submitted,
+attachment recreated or effect replayed. Availability does not imply execution
+compatibility. Detached composition with the actual portability library, signed
+capsules, native hosts and client renderers remains a distribution qualification.
+
+## Registered source attachment metadata selection
+
+Trusted composition registers `readTransferAttachmentMetadata` as a source callback;
+it is not a global client endpoint or another transfer authority. Call
+`readTransferAttachmentMetadata({session,expectedRevision?,cursor?,limit:25,maxBytes:262144})`.
+The version-1 result is `{owner:'unified.resources',version:1,session,revision,
+items,nextCursor,coverage,omissions}`. Each committed item contains exactly
+`{id,name,contentType,size,sha256,etag,resourceUri,status:'committed'}`. No body bytes,
+filesystem paths, drafts, native scans or worker initialization are part of this
+callback. Reads use indexed authorized session metadata independently of the inline
+evidence body's budget. Pages cap at 25 rows and 256 KiB of encoded response;
+`maxBytes` may be lowered to at least 1024 bytes.
+
+The opaque revision binds the explicit session and durable attachment metadata
+epoch. Creation and actual commit advance it atomically with the metadata write;
+chunk progress and exact retries do not. Echo `expectedRevision` and `nextCursor`
+until the cursor is exhausted. A changed revision or scope-mismatched cursor
+refuses instead of returning a mixed selection. Ordinary pagination leaves rows
+for the next cursor. A descriptor too large even alone at the requested byte
+budget is omitted explicitly by ID/reason and never truncated.
+
+`coverage` describes omissions for the scoped revision; `complete` does not mean
+that `nextCursor` has been exhausted. Unfinished attachment omissions repeat the
+same count across pages at that revision; coalesce those identical entries rather
+than summing them. Preserve per-ID byte-budget omissions from every page. A budget
+too small for the cursor/coverage itself refuses. After copying selected bodies,
+recheck the same `expectedRevision` before sealing the transfer.
+
+The portability adapter signs the exact source selection revision, scope,
+descriptors, coverage/omissions and their digest alongside the original
+`evidenceHash`/`ownerRevision` and detached plan. Its target verifier must authenticate
+that selection and require a one-to-one ID/size/hash mapping from audited plan
+rows. Absence from inline evidence is permitted only through that signed selection,
+never through a caller claim. Existing 500-body, 200-JavaScript-code-unit identifier,
+64-MiB/body and 1-GiB selection limits still require negotiation/refusal or separately
+reviewed omissions. The resources callback grants no release/activation permission.
