@@ -1,5 +1,9 @@
 # Unified resources capability
 
+Owner direction: [Vision](docs/VISION.md), [Contract v1](docs/CONTRACT.v1.md),
+and [agent entry point](AGENTS.md). These organize inherited approved promises;
+source and installed checks remain distinct from integrated acceptance.
+
 Optional independently packaged Canvas owner for `@amplifier/unified-host`.
 `createResourcesCapability({directory,inspectSession,onChanged})` exposes a
 capability manifest, `read`, `action`, a standard `resourceProvider` and `close`.
