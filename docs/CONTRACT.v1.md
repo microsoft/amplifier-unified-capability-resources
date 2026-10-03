@@ -68,3 +68,21 @@ reversible presentation reset, minimum-runtime/platform combinations and live
 adoption remain explicit integration gaps. These gaps do not retire the promises
 above. No new obligations beyond the inherited direction and existing reviewed
 API are ratified here; novel scope changes require coordinator approval.
+
+## Source-selection callback v1
+
+The registered `readTransferAttachmentMetadata` callback in the
+[README](../README.md#registered-source-attachment-metadata-selection) supplies
+indexed body-free scoped metadata with CAS revision refusal, 25-row/256-KiB pages,
+explicit cursor/coverage/omissions and existing immutable resource identities.
+[Metadata selection tests](../test/attachment-metadata.test.mjs) falsify missing
+attachment descriptors when inline artifact budget is exhausted, mixed stale or
+wrong-session pages, hidden truncation and revision drift across exact retries or
+restart. A complete coverage label does not waive exhausting the cursor.
+
+This is the coordinator-approved completion of the existing bounded historical
+transfer promise (HP2/5, WS3–5, CS1/3/4, CB3/6). The adapter must sign the exact
+selection digest/revision/descriptors/omissions with the existing evidence and plan
+binding and authenticate them on the destination. Source metadata itself is not
+signed-release authority. Actual adapter/native signed-transfer qualification
+remains separate from this owner callback's source and installed tests.

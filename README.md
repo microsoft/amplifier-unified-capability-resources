@@ -350,3 +350,40 @@ chunk digests. No live resource URI is rewritten, app rendered, prompt submitted
 attachment recreated or effect replayed. Availability does not imply execution
 compatibility. Detached composition with the actual portability library, signed
 capsules, native hosts and client renderers remains a distribution qualification.
+
+## Registered source attachment metadata selection
+
+Trusted composition registers `readTransferAttachmentMetadata` as a source callback;
+it is not a global client endpoint or another transfer authority. Call
+`readTransferAttachmentMetadata({session,expectedRevision?,cursor?,limit:25,maxBytes:262144})`.
+The version-1 result is `{owner:'unified.resources',version:1,session,revision,
+items,nextCursor,coverage,omissions}`. Each committed item contains exactly
+`{id,name,contentType,size,sha256,etag,resourceUri,status:'committed'}`. No body bytes,
+filesystem paths, drafts, native scans or worker initialization are part of this
+callback. Reads use indexed authorized session metadata independently of the inline
+evidence body's budget. Pages cap at 25 rows and 256 KiB of encoded response;
+`maxBytes` may be lowered to at least 1024 bytes.
+
+The opaque revision binds the explicit session and durable attachment metadata
+epoch. Creation and actual commit advance it atomically with the metadata write;
+chunk progress and exact retries do not. Echo `expectedRevision` and `nextCursor`
+until the cursor is exhausted. A changed revision or scope-mismatched cursor
+refuses instead of returning a mixed selection. Ordinary pagination leaves rows
+for the next cursor. A descriptor too large even alone at the requested byte
+budget is omitted explicitly by ID/reason and never truncated.
+
+`coverage` describes omissions for the scoped revision; `complete` does not mean
+that `nextCursor` has been exhausted. Unfinished attachment omissions repeat the
+same count across pages at that revision; coalesce those identical entries rather
+than summing them. Preserve per-ID byte-budget omissions from every page. A budget
+too small for the cursor/coverage itself refuses. After copying selected bodies,
+recheck the same `expectedRevision` before sealing the transfer.
+
+The portability adapter signs the exact source selection revision, scope,
+descriptors, coverage/omissions and their digest alongside the original
+`evidenceHash`/`ownerRevision` and detached plan. Its target verifier must authenticate
+that selection and require a one-to-one ID/size/hash mapping from audited plan
+rows. Absence from inline evidence is permitted only through that signed selection,
+never through a caller claim. Existing 500-body, 200-JavaScript-code-unit identifier,
+64-MiB/body and 1-GiB selection limits still require negotiation/refusal or separately
+reviewed omissions. The resources callback grants no release/activation permission.
