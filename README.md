@@ -48,3 +48,28 @@ Browser integration belongs to the separately packaged web client. These tests
 do not qualify live MCP services, paid providers, device access or production
 history migration. Old artifact import and operational disk quotas remain explicit
 distribution responsibilities.
+
+## Shared attachments
+
+Private draft bytes stay in each client. Explicit Send creates an upload with
+`attachments.create`, appends up to 256 KiB per standard `resourceWrite` (base64,
+append, exact byte offset in the URI), then calls `attachments.commit`. Files cap
+at 32 MiB. Inspect an exact creation request or attachment ID after uncertain
+replies; identical acknowledged chunks are safe to resend, changed bytes are
+refused. An interrupted unacknowledged file tail is discarded before continuing.
+Commit streams the declared SHA-256 and makes the body immutable. Metadata and
+conversation history contain references, never bodies or unfinished drafts.
+
+Use all entries of `resourceProviders` when composing the host. The original
+`resourceProvider` remains the Canvas provider. Attachment bodies support bounded
+byte pages, defaulting to base64; UTF-8 requests reject invalid or split sequences.
+Clients verify complete size and SHA-256 before displaying assembled downloads.
+
+`resolvePromptAttachment(context, attachment, {mode})` checks the selected
+conversation and revalidates the complete committed body before execution. Default
+`inline` materializes at most 4 MiB as standard ACP content. Explicit `local-files`
+returns a standard ACP resource link for engines configured to share the owner's
+filesystem. That mode does not claim remote filesystem access or automatic
+provider-specific image/PDF ingestion. Oversize inline input fails before turn
+admission. Uploads cap at 16 unfinished files per conversation and 256 per owner;
+concurrent writes have a bounded queue. Historical bodies remain on disk.

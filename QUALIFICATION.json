@@ -1,6 +1,6 @@
 {
   "date": "2026-10-02",
-  "sourceRevision": "63389cc9c7e550714faa148ca67dc1428f7e6c0c",
+  "sourceRevision": "see containing commit; prior resource baseline fde5ada50e63fadac897d4df0c67e46604bddad1",
   "relocatedCheckout": true,
   "environment": {
     "os": "macOS arm64",
@@ -8,10 +8,12 @@
     "python": "3.13.11"
   },
   "tests": {
-    "nodePassed": 10
+    "nodePassed": 16,
+    "attachmentCases": 6
   },
   "limits": [
     "Offline component fixtures and explicitly owned consumers; no production host or real-account adoption.",
-    "Linux Node22/24 CI configured; hosted outcomes are independent."
+    "Linux Node22/24 CI configured; hosted outcomes are independent.",
+    "32 MiB disk upload, restart and integrity qualified locally; shared-filesystem links do not establish external-agent file ingestion."
   ]
 }
