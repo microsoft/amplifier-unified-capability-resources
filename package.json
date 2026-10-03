@@ -12,7 +12,8 @@
     "src",
     "README.md",
     "LICENSE",
-    "docs"
+    "docs",
+    "AGENTS.md"
   ],
   "scripts": {
     "test": "node --test test/*.test.mjs"
