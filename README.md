@@ -91,3 +91,43 @@ returns selected metadata pages. Bodies stay behind `readTransferBody` with an
 exact record index and byte offset, base64 pages up to 256 KiB, complete size and
 SHA-256. Source namespaces and unknown evidence are preserved. Source files are
 never deleted, and importing history does not replay events.
+
+## Explicit legacy document import
+
+The separate public `@amplifier/unified-resources-capability/migration` entry point
+exports `importLegacyDocuments`. Run it offline with a reviewed mapping:
+
+```js
+import {importLegacyDocuments} from '@amplifier/unified-resources-capability/migration';
+const page = importLegacyDocuments({
+  database: '/retained/unified/app.sqlite3',
+  destination: '/owned/new-unified/resources',
+  sourceSession: 'original-session-id',
+  session: 'ahp-session:/reviewed-destination-id',
+  workingDirectory: '/reviewed/existing/workspace',
+  limit: 20, // repeat with after: page.nextCursor
+});
+```
+
+The operator verifies that the destination host session belongs to this native
+conversation/workspace. This function does not create, load or execute a session.
+It opens the original database read-only, respects committed global overlays,
+and filters one selected legacy session before returning a page. No private
+client state is imported. The SQL engine may parse the old checkpoint during this
+explicit offline operation; this is not an interactive catalog path. A checkpoint
+above 256 MiB is refused and retained for a separate export workflow.
+
+Ordinary document versions retain their identities, original body hashes/bytes,
+timestamps and message links. The destination commits each complete artifact
+atomically; interrupted immutable file copies can leave harmless orphan blobs.
+An identical repeat leaves later destination edits intact. Changed mappings,
+existing destination identities, missing/corrupt bodies and unsupported records
+are classified as retained, never overwritten or reconstructed from a workspace
+file. Pages are bound to the source revision. Each artifact is bounded to 500
+versions and 32 MiB combined, with 512 KiB metadata and 6 MiB individual bodies.
+
+Interactive CanvasApps, external MCP artifacts and browser effects require their
+original owner and remain explicitly classified on the retained source. The
+importer does not activate them, claim complete legacy feature migration, or
+restore old effect tokens. Exact original metadata remains in the destination
+import journal for successfully copied documents; private views stay client-owned.
