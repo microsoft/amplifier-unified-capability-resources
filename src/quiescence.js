@@ -1,3 +1,4 @@
+import {managedParticipant,emptyManaged} from './managed-files.js';
 import {emptyRetention,retentionParticipant} from './retention.js';
 import {serviceIdentity,sameIdentity,validateServiceRelease} from './service-lifecycle.js';
 const canonicalProof=value=>Array.isArray(value)?value.map(canonicalProof):value&&typeof value==='object'?Object.fromEntries(Object.keys(value).sort().map(key=>[key,canonicalProof(value[key])])):value;
@@ -5,7 +6,7 @@ const releaseSignature=(outcome,proof)=>JSON.stringify([outcome,canonicalProof(p
 import {DatabaseSync} from 'node:sqlite';
 import {join} from 'node:path';
 const keys=['ownerId','fenceId','commandId','purpose','instanceId','dataScope'];
-function context(ownerId,value){const result={ownerId,...Object.fromEntries(keys.slice(1).map(key=>[key,value?.[key]]))};if(Object.values(result).some(v=>typeof v!=='string'||!v||v.length>200||/[\x00-\x1f]/.test(v))||!['recovery','distribution-update','service-stop','retention-hide'].includes(result.purpose))throw Error('Bounded exact resource quiescence context required');if(result.purpose==='service-stop'){result.serviceIdentity=serviceIdentity(value.serviceIdentity);if(result.serviceIdentity.instanceId!==result.instanceId||result.serviceIdentity.dataScope!==result.dataScope)throw Error('Service identity differs from resource fence');}return result;}
+function context(ownerId,value){const result={ownerId,...Object.fromEntries(keys.slice(1).map(key=>[key,value?.[key]]))};if(Object.values(result).some(v=>typeof v!=='string'||!v||v.length>200||/[\x00-\x1f]/.test(v))||!['recovery','distribution-update','service-stop','retention-hide','managed-files-disposal'].includes(result.purpose))throw Error('Bounded exact resource quiescence context required');if(result.purpose==='service-stop'){result.serviceIdentity=serviceIdentity(value.serviceIdentity);if(result.serviceIdentity.instanceId!==result.instanceId||result.serviceIdentity.dataScope!==result.dataScope)throw Error('Service identity differs from resource fence');}return result;}
 const same=(left,right)=>keys.every(key=>left[key]===right[key])&&(left.purpose!=='service-stop'||sameIdentity(serviceIdentity(left.serviceIdentity),serviceIdentity(right.serviceIdentity)));
 /** One OS-held owner plus a durable intake fence; no snapshot of idle implies a lease. */
 export class ResourceQuiescence{
@@ -26,13 +27,13 @@ export class ResourceQuiescence{
  notice(){if(this.noticeTimer||this.closed)return;this.noticeTimer=setTimeout(()=>{this.noticeTimer=undefined;try{Promise.resolve(this.onMayBeIdle()).catch(()=>{})}catch{}},0);this.noticeTimer.unref();}
  async effect(callback){this.assertOpen();this.active++;try{return await callback()}finally{this.active--;this.notice();}}
  participant(ownerId='resources'){
-  return retentionParticipant({id:ownerId,serviceStop:{version:1},acquire:async input=>{
+  return managedParticipant(retentionParticipant({id:ownerId,serviceStop:{version:1},acquire:async input=>{
    const value=context(ownerId,input),prior=this.current();
    if(prior){if(!same(prior,value)||prior.state!=='held')throw Error('Resource fence requires exact authoritative reconciliation');return this.lease(value);}
    if(this.db.prepare('SELECT 1 FROM receipts WHERE id=?').get(value.fenceId))throw Error('Retained resource fence cannot be acquired again');
    if(this.active)return null;
    this.save({...value,state:'held'});this.liveFence=value.fenceId;return this.lease(value);
-  },reconcileRelease:async input=>this.release(context(ownerId,input),input.outcome,input.proof)},args=>{const empty=emptyRetention(args.context,args,this.current());return this.retentionReferences?.(args.sessions)??empty;});
+  },reconcileRelease:async input=>this.release(context(ownerId,input),input.outcome,input.proof)},args=>{const empty=emptyRetention(args.context,args,this.current());return this.retentionReferences?.(args.sessions)??empty;}),args=>{emptyManaged(args.context,args,this.current());return this.managedReferences(args);});
  }
  lease(value){return {ownerId:value.ownerId,fenceId:value.fenceId,release:async(outcome,proof)=>this.release(value,outcome,proof,true)};}
  release(value,outcome,proof,live=false){

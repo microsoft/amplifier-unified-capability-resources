@@ -1,3 +1,4 @@
+import {mergeManaged} from './managed-files.js';
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync,writeFileSync,openSync,fsyncSync,closeSync,renameSync,readFileSync,existsSync} from 'node:fs';
 import {readFile,realpath,stat} from 'node:fs/promises';
@@ -114,6 +115,16 @@ export function createResourcesCapability({directory,inspectSession,onChanged=()
   if(store.db.prepare(`SELECT 1 FROM artifacts a JOIN apps app ON app.artifact=a.id JOIN app_states st ON st.artifact=a.id AND st.state_revision=app.state_revision WHERE a.session=? AND (instr(st.summary,'"status":"pending"')>0 OR instr(st.summary,'"status":"unknown"')>0) LIMIT 1`).get(session))reasons.push('canvas-request');
   return reasons.length?[{session,reasons}]:[];
  }),omissions:[]});
+ store.db.exec(`CREATE INDEX IF NOT EXISTS managed_version_path ON versions(json_extract(definition,'$.path'));CREATE INDEX IF NOT EXISTS managed_version_workspace ON versions(json_extract(definition,'$.workspacePath'));`);
+ store.quiescence.managedReferences=args=>{
+  const root=args.allocation.executionDirectory;
+  const referenced=['path','workspacePath'].some(key=>store.db.prepare(`SELECT 1 FROM versions WHERE json_extract(definition,'$.${key}')=? OR (json_extract(definition,'$.${key}')>=? AND json_extract(definition,'$.${key}')<?) LIMIT 1`).get(root,root+'/',root+'0'));
+  return mergeManaged(store.quiescence.retentionReferences(args.sessions),args.sessions,session=>{
+   const reasons=[];if(referenced)reasons.push('artifact-file-source');
+   if(store.db.prepare('SELECT 1 FROM transfer_evidence WHERE session=? LIMIT 1').get(session))reasons.push('imported-artifact-evidence');
+   return reasons;
+  });
+ };
  const attachmentProvider={scheme:'amplifier-attachment',read:params=>attachments.read(params),resolve:params=>attachments.resolve(params),write:params=>store.quiescence.effect(()=>attachments.write(params))};
  return {exportTransferEvidence:args=>store.quiescence.effect(()=>transfer.export(args)),stageTransferEvidence:args=>store.quiescence.effect(()=>transfer.stage(args)),activateTransferEvidence:args=>store.quiescence.effect(()=>transfer.activate(args)),readTransferEvidence:transfer.read,readTransferBody:transfer.readBody,manifest,read,action,quiescenceAccess,quiescenceParticipant:ownerId=>store.quiescence.participant(ownerId),inspectQuiescence:()=>store.quiescence.inspect(),actionSchemas:{...actionSchemas,...attachmentSchemas},resourceProvider,resourceProviders:[resourceProvider,attachmentProvider],resolvePromptAttachment:(ctx,attachment,options)=>attachments.prompt(ctx,attachment,options),registerExternal,store,close:()=>{store.quiescence.assertClosable();attachments.close();store.close();}};
 }
