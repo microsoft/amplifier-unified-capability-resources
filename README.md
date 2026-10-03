@@ -73,3 +73,21 @@ filesystem. That mode does not claim remote filesystem access or automatic
 provider-specific image/PDF ingestion. Oversize inline input fails before turn
 admission. Uploads cap at 16 unfinished files per conversation and 256 per owner;
 concurrent writes have a bounded queue. Historical bodies remain on disk.
+
+## Historical transfer evidence
+
+The private portability hooks `exportTransferEvidence`, `stageTransferEvidence`
+and `activateTransferEvidence` preserve immutable observations under owner
+`unified.resources`. The trusted portability composition must verify the public
+byte-preserving envelope, paired source and signed release before calling them.
+Each transfer ID seals one export; repeating it cannot silently capture later
+changes. Exports cap at 8 MiB and 500 records. Remaining versions, external bodies,
+attachment bytes and effect history are declared as explicit omissions, requiring
+preview acceptance rather than being represented as a complete transfer.
+
+Imports live separately from active Canvas artifacts, app state and attachments.
+They grant no rendering, editing or client-effect authority. `readTransferEvidence`
+returns selected metadata pages. Bodies stay behind `readTransferBody` with an
+exact record index and byte offset, base64 pages up to 256 KiB, complete size and
+SHA-256. Source namespaces and unknown evidence are preserved. Source files are
+never deleted, and importing history does not replay events.

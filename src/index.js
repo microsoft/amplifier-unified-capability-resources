@@ -3,6 +3,7 @@ import {mkdirSync,writeFileSync,openSync,fsyncSync,closeSync,renameSync,readFile
 import {readFile,realpath,stat} from 'node:fs/promises';
 import {join,relative,isAbsolute,extname} from 'node:path';
 import {createHash,randomUUID} from 'node:crypto';
+import {ResourceEvidence} from './transfer.js';
 import {CanvasApps} from './apps.js';
 import {actionSchemas} from './actions.js';
 import {Attachments,attachmentSchemas,CHUNK_BYTES,MAX_ATTACHMENT} from './attachments.js';
@@ -67,6 +68,7 @@ export function createResourcesCapability({directory,inspectSession,onChanged=()
  const originalDescriptor=store.descriptor.bind(store);store.descriptor=(row,version)=>{const value=apps.decorate(originalDescriptor(row,version));if(!value.external)return value;const {external,editableUri,...rest}=value;return {...rest,...external};};
  const manifest={version:1,topics:{canvas:{uri:'amplifier-capability://canvas',version:1,watch:true}},actions:Object.fromEntries(operations.map(operation=>[operation,{topic:'canvas',operation,method:'x-amplifier/capabilityAction'}]))};
  const context=async session=>{if(typeof session!=='string'||!session.startsWith('ahp-session:/'))fail('Canvas requires an explicit conversation');const value=await inspectSession(session);if(value.session!==session)fail('Conversation scope changed',-32009);return value;};
+ const transfer=new ResourceEvidence(store,context);
  const attachments=new Attachments(store,context);manifest.topics.attachments={uri:'amplifier-capability://attachments',version:1,watch:false};for(const operation of Object.keys(attachmentSchemas))manifest.actions[operation]={topic:'attachments',operation,method:'x-amplifier/capabilityAction'};
  const snapshot=async(scope,query={})=>{await context(scope);const page=store.list(scope,query);return {topic:'canvas',scope,revision:store.revision(scope),data:{canvasArtifacts:page.items,canvasPage:{nextCursor:page.nextCursor}}};};
  const read=async({uri,scope,topic})=>{const parsed=new URL(uri);if(topic==='attachments'||parsed.hostname==='attachments'){await context(scope);return {topic:'attachments',scope,revision:1,data:{attachmentLimits:{chunkBytes:CHUNK_BYTES,maxFileBytes:MAX_ATTACHMENT,maxFiles:8}}};}if(parsed.searchParams.has('id')){await context(scope);const row=store.row(scope,parsed.searchParams.get('id'));const version=parsed.searchParams.has('version')?Number(parsed.searchParams.get('version')):undefined;return {topic:'canvas',scope,revision:store.revision(scope),data:{canvasArtifacts:[store.descriptor(row,version)]}};}return snapshot(scope,{limit:parsed.searchParams.has('limit')?Number(parsed.searchParams.get('limit')):50,cursor:parsed.searchParams.get('cursor')||undefined});};
@@ -103,5 +105,5 @@ export function createResourcesCapability({directory,inspectSession,onChanged=()
   const artifact=store.save(ctx,{kind:'mcp-app',title:bounded(descriptor.title,'title',200),external},{},existing?{id:descriptor.id,expectedRevision:existing.revision}:{newId:descriptor.id});onChanged('canvas',ctx.session);return artifact;
  };
  const attachmentProvider={scheme:'amplifier-attachment',read:params=>attachments.read(params),resolve:params=>attachments.resolve(params),write:params=>attachments.write(params)};
- return {manifest,read,action,actionSchemas:{...actionSchemas,...attachmentSchemas},resourceProvider,resourceProviders:[resourceProvider,attachmentProvider],resolvePromptAttachment:(ctx,attachment,options)=>attachments.prompt(ctx,attachment,options),registerExternal,store,close:()=>{attachments.close();store.close();}};
+ return {exportTransferEvidence:transfer.export,stageTransferEvidence:transfer.stage,activateTransferEvidence:transfer.activate,readTransferEvidence:transfer.read,readTransferBody:transfer.readBody,manifest,read,action,actionSchemas:{...actionSchemas,...attachmentSchemas},resourceProvider,resourceProviders:[resourceProvider,attachmentProvider],resolvePromptAttachment:(ctx,attachment,options)=>attachments.prompt(ctx,attachment,options),registerExternal,store,close:()=>{attachments.close();store.close();}};
 }

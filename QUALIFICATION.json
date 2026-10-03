@@ -8,8 +8,9 @@
     "python": "3.13.11"
   },
   "tests": {
-    "nodePassed": 16,
-    "attachmentCases": 6
+    "nodePassed": 18,
+    "attachmentCases": 6,
+    "transferCases": 2
   },
   "limits": [
     "Offline component fixtures and explicitly owned consumers; no production host or real-account adoption.",
