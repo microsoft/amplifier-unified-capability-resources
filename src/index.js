@@ -107,6 +107,13 @@ export function createResourcesCapability({directory,inspectSession,onChanged=()
   if(existing&&originalDescriptor(existing).kind!=='mcp-app')fail('Artifact identity belongs to another provider',-32009);
   const artifact=store.save(ctx,{kind:'mcp-app',title:bounded(descriptor.title,'title',200),external},{},existing?{id:descriptor.id,expectedRevision:existing.revision}:{newId:descriptor.id});onChanged('canvas',ctx.session);return artifact;
  });
+ store.db.exec(`CREATE INDEX IF NOT EXISTS retention_apps ON app_states(artifact,state_revision) WHERE instr(summary,'"status":"pending"')>0 OR instr(summary,'"status":"unknown"')>0;`);
+ store.quiescence.retentionReferences=sessions=>({coverage:'complete',protected:sessions.flatMap(session=>{
+  const reasons=[];
+  if(attachments.db.prepare("SELECT 1 FROM attachments WHERE status='uploading' AND session=? LIMIT 1").get(session))reasons.push('attachment-upload');
+  if(store.db.prepare(`SELECT 1 FROM artifacts a JOIN apps app ON app.artifact=a.id JOIN app_states st ON st.artifact=a.id AND st.state_revision=app.state_revision WHERE a.session=? AND (instr(st.summary,'"status":"pending"')>0 OR instr(st.summary,'"status":"unknown"')>0) LIMIT 1`).get(session))reasons.push('canvas-request');
+  return reasons.length?[{session,reasons}]:[];
+ }),omissions:[]});
  const attachmentProvider={scheme:'amplifier-attachment',read:params=>attachments.read(params),resolve:params=>attachments.resolve(params),write:params=>store.quiescence.effect(()=>attachments.write(params))};
  return {exportTransferEvidence:args=>store.quiescence.effect(()=>transfer.export(args)),stageTransferEvidence:args=>store.quiescence.effect(()=>transfer.stage(args)),activateTransferEvidence:args=>store.quiescence.effect(()=>transfer.activate(args)),readTransferEvidence:transfer.read,readTransferBody:transfer.readBody,manifest,read,action,quiescenceAccess,quiescenceParticipant:ownerId=>store.quiescence.participant(ownerId),inspectQuiescence:()=>store.quiescence.inspect(),actionSchemas:{...actionSchemas,...attachmentSchemas},resourceProvider,resourceProviders:[resourceProvider,attachmentProvider],resolvePromptAttachment:(ctx,attachment,options)=>attachments.prompt(ctx,attachment,options),registerExternal,store,close:()=>{store.quiescence.assertClosable();attachments.close();store.close();}};
 }
