@@ -45,6 +45,13 @@ function manifest(input){
 function text(value,name,max=500000){if(typeof value!=='string'||value.length>max)fault('Invalid '+name);return value;}
 function revisions(app,args){if(args.expectedRevision!==app.revision||args.expectedStateRevision!==app.stateRevision)fault('Surface changed; inspect current revisions before retrying',-32011);}
 
+/** Offline conversion validates original schema/state; historical effects stay in the import journal. */
+export function validateLegacyAppSnapshot(content,spec,state,revision,stateRevision){
+ if(!Number.isSafeInteger(revision)||revision<1||!Number.isSafeInteger(stateRevision)||stateRevision<0)fault('Invalid legacy app revisions');
+ const checked=manifest(spec),value=data(state);validate(value,checked.stateSchema);
+ return {content:text(content,'content'),app:{manifest:checked,state:value,revision,stateRevision,events:[],requests:[]}};
+}
+
 /** Definitions and shared app state are durable. No client drafts or rendered views are stored. */
 export class CanvasApps{
  operations=['create','inspect','revise','restore','state','event','request','resolve'].map(name=>'canvas.apps.'+name);

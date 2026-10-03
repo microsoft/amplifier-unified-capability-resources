@@ -41,3 +41,25 @@ test('stale source cursor and changed target mapping refuse instead of replacing
  assert.throws(()=>importLegacyDocuments({...f.args,after:first.nextCursor}),/page changed/);
  const changed=importLegacyDocuments({...f.args,session:'ahp-session:/other'});assert.equal(changed.items[0].status,'retained');assert.match(changed.items[0].reason,/mapping changed/);
 });
+
+test('reviewed legacy app definitions and current state preserve original bytes and never reactivate effects',async t=>{
+ const {importLegacyApps}=await import('../src/migration.js');const f=fixture(t);
+ const saved=value=>{const bytes=JSON.stringify(value),id=hash(bytes);f.db.prepare('INSERT INTO state_resources VALUES(?,?)').run(id,JSON.stringify({$blob:id}));writeFileSync(join(f.directory,'artifacts',id+'.json'),bytes);return {$resource:id};};
+ const spec={version:1,stateSchema:{type:'object',properties:{count:{type:'integer'}},required:['count'],additionalProperties:false},events:{},requests:{}};
+ const first=saved({content:'<b>first</b>',manifest:spec}),second=saved({content:'<b>second</b>',manifest:spec}),state1=saved({state:{count:1},stateRevision:0}),state2=saved({state:{count:3},stateRevision:2});
+ const row={id:'legacy-app',kind:'canvas-app',sessionId:'legacy-session',title:'Second',createdAt:1,body:second,publications:[{version:1,messageId:'original-message'}],app:{revision:2,stateRevision:3,manifest:spec,state:{count:9},events:[{name:'old'}],requests:[{id:'old-effect',status:'applied',token:'never-restore'}],versions:[{version:1,title:'First',body:first,stateResource:state1,createdAt:1},{version:2,title:'Second',body:second,stateResource:state2,createdAt:2}]}};
+ f.save([row,{...row,id:'unknown-app',app:{...row.app,requests:[{status:'unknown'}]}}]);f.close();const before=hash(readFileSync(f.args.database));
+ const preview=importLegacyDocuments(f.args);assert.ok(preview.items.every(item=>item.status==='retained'));
+ const reviewed=Object.fromEntries(preview.items.map(item=>[item.id,item.metadataSha256]));
+ const result=importLegacyApps({...f.args,reviewed});assert.deepEqual(result.items.map(item=>item.status),['imported','retained']);assert.match(result.items[1].reason,/unknown/);
+ let owner=f.owner();try{
+  const page=await owner.read({uri:'amplifier-capability://canvas',scope:f.args.session}),descriptor=page.data.canvasArtifacts[0];assert.equal(descriptor.revision,2);assert.equal(descriptor.app.stateRevision,3);
+  const current=JSON.parse((await owner.resourceProvider.read({uri:descriptor.bodyUri})).data);assert.deepEqual(current.app.state,{count:9});assert.deepEqual(current.app.requests,[]);assert.deepEqual(current.app.events,[]);
+  const historical=(await owner.action({topic:'canvas',version:1,channel:f.args.session,operation:'canvas.versions.inspect',args:{id:row.id,version:1}})).result.artifact;
+  assert.equal(historical.messageId,'original-message');assert.deepEqual(JSON.parse((await owner.resourceProvider.read({uri:historical.bodyUri})).data).app.state,{count:1});
+  assert.equal(hash(readFileSync(join(f.args.destination,'bodies',first.$resource+'.json'))),first.$resource);
+  await owner.action({topic:'canvas',version:1,channel:f.args.session,operation:'canvas.apps.state',args:{id:row.id,expectedRevision:2,expectedStateRevision:3,patch:{count:10}}});owner.close();
+  assert.equal(importLegacyApps({...f.args,reviewed}).items[0].status,'already-imported');owner=f.owner();assert.equal((await owner.action({topic:'canvas',version:1,channel:f.args.session,operation:'canvas.apps.inspect',args:{id:row.id}})).result.app.state.count,10);
+ }finally{owner.close();}
+ assert.equal(hash(readFileSync(f.args.database)),before);assert.equal(importLegacyApps({...f.args,reviewed:{'legacy-app':'f'.repeat(64)}}).items[0].status,'retained');
+});

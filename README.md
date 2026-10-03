@@ -46,8 +46,8 @@ conditional writes, scoped authorization, symlinks, metadata paging without body
 reads, shared state conflict/schema checks and client-effect admission/recovery.
 Browser integration belongs to the separately packaged web client. These tests
 do not qualify live MCP services, paid providers, device access or production
-history migration. Old artifact import and operational disk quotas remain explicit
-distribution responsibilities.
+history migration. Reviewed offline legacy import is available through the separate migration entry
+point. Operational disk quotas remain an explicit distribution responsibility.
 
 ## Shared attachments
 
@@ -82,7 +82,7 @@ and `activateTransferEvidence` preserve immutable observations under owner
 byte-preserving envelope, paired source and signed release before calling them.
 Each transfer ID seals one export; repeating it cannot silently capture later
 changes. Exports cap at 8 MiB and 500 records. Remaining versions, external bodies,
-attachment bytes and effect history are declared as explicit omissions, requiring
+budget-exceeding attachment bytes and effect history are declared as explicit omissions, requiring
 preview acceptance rather than being represented as a complete transfer.
 
 Imports live separately from active Canvas artifacts, app state and attachments.
@@ -126,10 +126,10 @@ are classified as retained, never overwritten or reconstructed from a workspace
 file. Pages are bound to the source revision. Each artifact is bounded to 500
 versions and 32 MiB combined, with 512 KiB metadata and 6 MiB individual bodies.
 
-Interactive CanvasApps, external MCP artifacts and browser effects require their
-original owner and remain explicitly classified on the retained source. The
-importer does not activate them, claim complete legacy feature migration, or
-restore old effect tokens. Exact original metadata remains in the destination
+Interactive CanvasApps require the separate reviewed app importer described below;
+external MCP artifacts and browser effects remain explicitly classified on the
+retained source. The document importer does not activate them, claim complete
+legacy feature migration, or restore old effect tokens. Exact original metadata remains in the destination
 import journal for successfully copied documents; private views stay client-owned.
 
 ## Held owner intake fence
@@ -250,3 +250,61 @@ The allocation comes from the trusted host's native-reviewed managed allocation,
 Pending attachment uploads and CanvasApp requests protect selected conversations. Indexed file sources across all retained artifact versions protect an overlapping allocation, including cross-conversation sources and versions superseded by a detached current version. Imported artifact evidence is conservatively protected. Bodies are not loaded during inspection; self-contained copied inline content does not become an external file reference merely because its text mentions a path.
 
 Inspection uses bounded selected metadata or indexed overlap probes, not native transcripts, a global history projection, or worker/model startup. Existing retention-hide and service-stop lifecycles are unchanged. The package tests cover the independently installed owner transport and held/unknown/exact-release behavior; full host/native/browser disposal acceptance remains a composition responsibility.
+
+## Reviewed legacy interactive import
+
+`importLegacyApps` from the `/migration` entry point imports only selected legacy
+CanvasApps with reviewed exact metadata hashes. First call `importLegacyDocuments`
+as above: retained interactive records now include `metadataSha256`. Review the
+original definitions, state and session mapping, then supply
+`reviewed: {"original-artifact-id": "<metadataSha256>"}` to `importLegacyApps` with
+the same database/destination/session/workspace parameters. Its source-bound page
+cursor is separate from the document cursor. Changed review hashes or mappings
+refuse; identical repeats preserve subsequent destination edits.
+
+The importer checks every retained version-1 manifest and state schema. Original
+artifact IDs, definition revisions, state revisions, timestamps, publication links,
+definition bytes and saved state bytes remain retained. Compatible current state
+is copied into immutable owner snapshots. Historical events and completed requests
+remain in the exact source metadata journal, rather than becoming active requests
+or restored tokens. Any unresolved/unknown request, malformed version chain,
+missing/corrupt state, unsupported schema or conflicting identity stays on source.
+No HTML runs during import; no session starts or client effect replays. The source
+and destination remain separate and the destination must have no live owner.
+
+## Bounded attachment evidence and remote delivery
+
+Historical transfer now copies committed attachment bodies that fit the existing
+8 MiB envelope and 500-record limits, as verified binary evidence. The original
+size and SHA-256 accompany each body. Selected metadata pages omit body data;
+`readTransferBody` returns byte-exact base64 pages up to 256 KiB. Unfinished and
+budget-exceeding bodies remain explicit omissions. Imports remain inactive historical
+evidence and do not create executable attachments or remap old attachment URIs.
+
+For a remote ACP engine, trusted composition may explicitly choose
+`resolvePromptAttachment(context, attachment, {mode: 'remote-resource', resolveRemote})`.
+The callback receives immutable `{uri,name,mimeType,size,sha256,chunkBytes}` metadata
+and `read({offset,maxBytes})`, a session-scoped base64 reader capped at 256 KiB.
+The complete source is streamed and verified before invoking the callback. Transport
+must confirm `{uri,size,sha256}` for the exact resource; only HTTPS or explicitly
+supported `amplifier-attachment:` remote URIs are accepted, with no embedded user
+credentials. The returned standard ACP `resource_link` contains no local path or
+body. The host owns authentication, expiry, engine support and admission; this
+owner performs no implicit HTTP fetch. Lost transport results do not imply a turn
+was accepted and must not cause automatic model/tool replay.
+
+## Renderer acceptance boundary
+
+CanvasApp clients must negotiate support for manifest version 1 before executing
+HTML. Fetch the exact immutable `bodyUri` and bind the client-owned sandbox handshake
+to artifact ID, definition revision, state revision, iframe identity and a fresh
+client-local channel. Stale or unsupported renderers show an inspectable unavailable
+view; they must not mutate/rewrite the resource to reset presentation. Readiness,
+errors, editing buffers and reversible view reset remain client-owned. Requests
+from an old iframe must never target a newer selected resource. Existing body
+revisions and the owning capability's two-revision checks remain authoritative;
+renderer readiness alone grants no effect-claim authority.
+
+This owner qualifies preservation, bounds and installed public consumers. Actual
+sandbox handshake, browser/device rendering, reversible presentation reset and real
+remote engine transport require the web/TUI/host owners' acceptance receipts.
