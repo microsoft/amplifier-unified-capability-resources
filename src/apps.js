@@ -1,3 +1,4 @@
+import {initializeSchema} from './authoritative-schema.js';
 import Ajv2020 from 'ajv/dist/2020.js';
 import {randomUUID,createHash} from 'node:crypto';
 import {writeFileSync,readFileSync,openSync,fsyncSync,closeSync,renameSync,existsSync} from 'node:fs';
@@ -57,9 +58,9 @@ export class CanvasApps{
  operations=['create','inspect','revise','restore','state','event','request','resolve'].map(name=>'canvas.apps.'+name);
  constructor(store){
   this.store=store;this.db=store.db;
-  this.db.exec(`CREATE TABLE IF NOT EXISTS apps(artifact TEXT PRIMARY KEY,state_revision INTEGER NOT NULL);
+  initializeSchema(this.db,'resources',['apps'],()=>this.db.exec(`CREATE TABLE IF NOT EXISTS apps(artifact TEXT PRIMARY KEY,state_revision INTEGER NOT NULL);
    CREATE TABLE IF NOT EXISTS app_states(artifact TEXT NOT NULL,state_revision INTEGER NOT NULL,definition_revision INTEGER NOT NULL,hash TEXT NOT NULL,summary TEXT NOT NULL,PRIMARY KEY(artifact,state_revision));
-   CREATE TABLE IF NOT EXISTS app_definitions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,state_revision INTEGER NOT NULL,PRIMARY KEY(artifact,revision));`);
+   CREATE TABLE IF NOT EXISTS app_definitions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,state_revision INTEGER NOT NULL,PRIMARY KEY(artifact,revision));`));
  }
  has(id){return !!this.db.prepare('SELECT 1 FROM apps WHERE artifact=?').get(id);}
  snapshotRow(id,version,stateRevision){

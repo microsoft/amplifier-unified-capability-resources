@@ -1,0 +1,75 @@
+[
+  {
+    "source": "63389cc9c7e550714faa148ca67dc1428f7e6c0c",
+    "modules": [
+      "index"
+    ],
+    "sql": "CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);"
+  },
+  {
+    "source": "63389cc9c7e550714faa148ca67dc1428f7e6c0c",
+    "modules": [
+      "index",
+      "apps"
+    ],
+    "sql": "CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS apps(artifact TEXT PRIMARY KEY,state_revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS app_states(artifact TEXT NOT NULL,state_revision INTEGER NOT NULL,definition_revision INTEGER NOT NULL,hash TEXT NOT NULL,summary TEXT NOT NULL,PRIMARY KEY(artifact,state_revision));\nCREATE TABLE IF NOT EXISTS app_definitions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,state_revision INTEGER NOT NULL,PRIMARY KEY(artifact,revision));"
+  },
+  {
+    "source": "2732a8c220bcf9eccf7516ebeff12ab1674d50e1",
+    "modules": [
+      "index",
+      "apps",
+      "attachments"
+    ],
+    "sql": "CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS apps(artifact TEXT PRIMARY KEY,state_revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS app_states(artifact TEXT NOT NULL,state_revision INTEGER NOT NULL,definition_revision INTEGER NOT NULL,hash TEXT NOT NULL,summary TEXT NOT NULL,PRIMARY KEY(artifact,state_revision));\nCREATE TABLE IF NOT EXISTS app_definitions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,state_revision INTEGER NOT NULL,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS attachments(id TEXT PRIMARY KEY,session TEXT NOT NULL,request TEXT NOT NULL,fingerprint TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,sha TEXT NOT NULL,received INTEGER NOT NULL,status TEXT NOT NULL,created REAL NOT NULL,committed_request TEXT,UNIQUE(session,request));"
+  },
+  {
+    "source": "64a0dfe52e43538f98d1142c8a951f5ecdb79b84",
+    "modules": [
+      "index",
+      "apps",
+      "attachments",
+      "transfer"
+    ],
+    "sql": "CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS apps(artifact TEXT PRIMARY KEY,state_revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS app_states(artifact TEXT NOT NULL,state_revision INTEGER NOT NULL,definition_revision INTEGER NOT NULL,hash TEXT NOT NULL,summary TEXT NOT NULL,PRIMARY KEY(artifact,state_revision));\nCREATE TABLE IF NOT EXISTS app_definitions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,state_revision INTEGER NOT NULL,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS attachments(id TEXT PRIMARY KEY,session TEXT NOT NULL,request TEXT NOT NULL,fingerprint TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,sha TEXT NOT NULL,received INTEGER NOT NULL,status TEXT NOT NULL,created REAL NOT NULL,committed_request TEXT,UNIQUE(session,request));\nCREATE TABLE IF NOT EXISTS transfer_exports(id TEXT PRIMARY KEY,session TEXT,envelope TEXT);\nCREATE TABLE IF NOT EXISTS transfer_evidence(id TEXT PRIMARY KEY,source TEXT,native TEXT,hash TEXT,envelope TEXT,session TEXT,release TEXT);"
+  },
+  {
+    "source": "13728ef0908b7ec3a0ac449571ba2fca9e6a91e4",
+    "modules": [
+      "index",
+      "migration"
+    ],
+    "sql": "CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS legacy_document_imports(source TEXT NOT NULL,id TEXT NOT NULL,fingerprint TEXT NOT NULL,session TEXT NOT NULL,metadata TEXT NOT NULL,PRIMARY KEY(source,id));"
+  },
+  {
+    "source": "3d31a10d2733936054176394f245b8bed8ac0a66",
+    "modules": [
+      "index",
+      "apps",
+      "migration"
+    ],
+    "sql": "CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS apps(artifact TEXT PRIMARY KEY,state_revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS app_states(artifact TEXT NOT NULL,state_revision INTEGER NOT NULL,definition_revision INTEGER NOT NULL,hash TEXT NOT NULL,summary TEXT NOT NULL,PRIMARY KEY(artifact,state_revision));\nCREATE TABLE IF NOT EXISTS app_definitions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,state_revision INTEGER NOT NULL,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS legacy_document_imports(source TEXT NOT NULL,id TEXT NOT NULL,fingerprint TEXT NOT NULL,session TEXT NOT NULL,metadata TEXT NOT NULL,PRIMARY KEY(source,id));"
+  },
+  {
+    "source": "4c4148ecb13d4e0b948530dbbf2d2fff72e999cc",
+    "modules": [
+      "index",
+      "apps",
+      "attachments",
+      "transfer",
+      "payloads"
+    ],
+    "sql": "CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS apps(artifact TEXT PRIMARY KEY,state_revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS app_states(artifact TEXT NOT NULL,state_revision INTEGER NOT NULL,definition_revision INTEGER NOT NULL,hash TEXT NOT NULL,summary TEXT NOT NULL,PRIMARY KEY(artifact,state_revision));\nCREATE TABLE IF NOT EXISTS app_definitions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,state_revision INTEGER NOT NULL,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS attachments(id TEXT PRIMARY KEY,session TEXT NOT NULL,request TEXT NOT NULL,fingerprint TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,sha TEXT NOT NULL,received INTEGER NOT NULL,status TEXT NOT NULL,created REAL NOT NULL,committed_request TEXT,UNIQUE(session,request));\nCREATE TABLE IF NOT EXISTS transfer_exports(id TEXT PRIMARY KEY,session TEXT,envelope TEXT);\nCREATE TABLE IF NOT EXISTS transfer_evidence(id TEXT PRIMARY KEY,source TEXT,native TEXT,hash TEXT,envelope TEXT,session TEXT,release TEXT);\nCREATE TABLE IF NOT EXISTS transfer_payloads(id TEXT PRIMARY KEY,binding TEXT NOT NULL,records TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS transfer_payload_pending(id TEXT PRIMARY KEY,binding TEXT NOT NULL);"
+  },
+  {
+    "source": "3498bd19a6fa2d958ed0500716149d1461a6c23d",
+    "modules": [
+      "index",
+      "apps",
+      "attachments",
+      "transfer",
+      "payloads"
+    ],
+    "sql": "CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS apps(artifact TEXT PRIMARY KEY,state_revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS app_states(artifact TEXT NOT NULL,state_revision INTEGER NOT NULL,definition_revision INTEGER NOT NULL,hash TEXT NOT NULL,summary TEXT NOT NULL,PRIMARY KEY(artifact,state_revision));\nCREATE TABLE IF NOT EXISTS app_definitions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,state_revision INTEGER NOT NULL,PRIMARY KEY(artifact,revision));\nCREATE TABLE IF NOT EXISTS attachments(id TEXT PRIMARY KEY,session TEXT NOT NULL,request TEXT NOT NULL,fingerprint TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,sha TEXT NOT NULL,received INTEGER NOT NULL,status TEXT NOT NULL,created REAL NOT NULL,committed_request TEXT,UNIQUE(session,request));\nCREATE TABLE IF NOT EXISTS attachment_metadata_revisions(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);\nCREATE TABLE IF NOT EXISTS transfer_exports(id TEXT PRIMARY KEY,session TEXT,envelope TEXT);\nCREATE TABLE IF NOT EXISTS transfer_evidence(id TEXT PRIMARY KEY,source TEXT,native TEXT,hash TEXT,envelope TEXT,session TEXT,release TEXT);\nCREATE TABLE IF NOT EXISTS transfer_payloads(id TEXT PRIMARY KEY,binding TEXT NOT NULL,records TEXT NOT NULL);\nCREATE TABLE IF NOT EXISTS transfer_payload_pending(id TEXT PRIMARY KEY,binding TEXT NOT NULL);"
+  }
+]

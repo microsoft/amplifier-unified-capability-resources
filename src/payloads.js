@@ -1,3 +1,4 @@
+import {initializeSchema} from './authoritative-schema.js';
 /** Private composition ports. The embedding verifier owns signature, pairing and full plan audit. */
 import {createHash,randomUUID} from 'node:crypto';
 import {mkdirSync,openSync,closeSync,fstatSync,readSync,writeSync,fsyncSync,constants} from 'node:fs';
@@ -9,7 +10,7 @@ const json=value=>JSON.stringify(value,(_key,v)=>v&&typeof v==='object'&&!Array.
 const identity=value=>typeof value==='string'&&value.length>0&&value.length<=8192&&!value.includes('\0');
 const digest=value=>typeof value==='string'&&/^[a-f0-9]{64}$/.test(value);
 export class HistoricalPayloads{
- constructor(store,context,verifyPlan){this.store=store;this.db=store.db;this.context=context;this.verifyPlan=verifyPlan;this.directory=join(store.directory,'historical-payloads');mkdirSync(this.directory,{recursive:true,mode:0o700});this.db.exec('CREATE TABLE IF NOT EXISTS transfer_payloads(id TEXT PRIMARY KEY,binding TEXT NOT NULL,records TEXT NOT NULL);CREATE TABLE IF NOT EXISTS transfer_payload_pending(id TEXT PRIMARY KEY,binding TEXT NOT NULL)');}
+ constructor(store,context,verifyPlan){this.store=store;this.db=store.db;this.context=context;this.verifyPlan=verifyPlan;this.directory=join(store.directory,'historical-payloads');mkdirSync(this.directory,{recursive:true,mode:0o700});initializeSchema(this.db,'resources',['payloads'],()=>this.db.exec('CREATE TABLE IF NOT EXISTS transfer_payloads(id TEXT PRIMARY KEY,binding TEXT NOT NULL,records TEXT NOT NULL);CREATE TABLE IF NOT EXISTS transfer_payload_pending(id TEXT PRIMARY KEY,binding TEXT NOT NULL)'));}
  stage=async args=>{
   if(typeof this.verifyPlan!=='function')throw Error('Authenticated transfer plan verifier is unavailable');
   const staged=this.db.prepare('SELECT * FROM transfer_evidence WHERE id=?').get(args.transferId);

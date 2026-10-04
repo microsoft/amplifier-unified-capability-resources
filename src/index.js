@@ -1,3 +1,4 @@
+import {initializeSchema} from './authoritative-schema.js';
 import {mergeManaged} from './managed-files.js';
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync,writeFileSync,openSync,fsyncSync,closeSync,renameSync,readFileSync,existsSync} from 'node:fs';
@@ -23,14 +24,14 @@ function bodyURI(id,version,session){const uri=new URL(`amplifier-canvas://artif
 
 /** Durable shared artifacts only; selection, drafts and rendering evidence stay local. */
 export class ResourceStore{
- constructor(directory,{onMayBeIdle}={}){mkdirSync(directory,{recursive:true,mode:0o700});this.quiescence=new ResourceQuiescence(directory,onMayBeIdle);this.directory=directory;try{this.blobs=join(directory,'bodies');mkdirSync(this.blobs,{recursive:true,mode:0o700});this.db=new DatabaseSync(join(directory,'resources.sqlite'));this.db.exec(`PRAGMA journal_mode=WAL;PRAGMA synchronous=FULL;PRAGMA busy_timeout=5000;
+ constructor(directory,{onMayBeIdle}={}){mkdirSync(directory,{recursive:true,mode:0o700});this.quiescence=new ResourceQuiescence(directory,onMayBeIdle);this.directory=directory;try{this.blobs=join(directory,'bodies');mkdirSync(this.blobs,{recursive:true,mode:0o700});this.db=new DatabaseSync(join(directory,'resources.sqlite'));this.db.exec('PRAGMA journal_mode=WAL;PRAGMA synchronous=FULL;PRAGMA busy_timeout=5000;');initializeSchema(this.db,'resources',['base'],()=>this.db.exec(`
  CREATE TABLE IF NOT EXISTS artifacts(id TEXT PRIMARY KEY,session TEXT NOT NULL,workspace TEXT NOT NULL,source_path TEXT,created REAL NOT NULL,modified REAL NOT NULL,revision INTEGER NOT NULL);
  CREATE INDEX IF NOT EXISTS artifact_session ON artifacts(session,modified DESC,id);
  CREATE INDEX IF NOT EXISTS artifact_source ON artifacts(session,source_path);
  CREATE TABLE IF NOT EXISTS versions(artifact TEXT NOT NULL,revision INTEGER NOT NULL,hash TEXT NOT NULL,definition TEXT NOT NULL,created REAL NOT NULL,message_id TEXT,PRIMARY KEY(artifact,revision));
  CREATE TABLE IF NOT EXISTS topics(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);
  CREATE TABLE IF NOT EXISTS events(id INTEGER PRIMARY KEY AUTOINCREMENT,artifact TEXT NOT NULL,session TEXT NOT NULL,payload TEXT NOT NULL);
- CREATE INDEX IF NOT EXISTS artifact_events ON events(artifact,id DESC);`);}catch(error){this.db?.close();this.quiescence.close();throw error;}}
+ CREATE INDEX IF NOT EXISTS artifact_events ON events(artifact,id DESC);`));}catch(error){this.db?.close();this.quiescence.close();throw error;}}
  revision(session){return Number(this.db.prepare('SELECT revision FROM topics WHERE session=?').get(session)?.revision??0);}
  touch(session){this.quiescence.assertOpen();this.db.prepare('INSERT INTO topics VALUES(?,1) ON CONFLICT(session) DO UPDATE SET revision=revision+1').run(session);}
  row(session,id){const row=this.db.prepare('SELECT * FROM artifacts WHERE id=? AND session=?').get(id,session);if(!row)fail('Artifact not found in this conversation',-32008);return row;}

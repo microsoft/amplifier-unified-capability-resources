@@ -1,3 +1,4 @@
+import {preflightOwner,initializeSchema} from './authoritative-schema.js';
 import {managedParticipant,emptyManaged} from './managed-files.js';
 import {emptyRetention,retentionParticipant} from './retention.js';
 import {serviceIdentity,sameIdentity,validateServiceRelease} from './service-lifecycle.js';
@@ -16,7 +17,8 @@ export class ResourceQuiescence{
   try{this.lock.exec('PRAGMA busy_timeout=0;PRAGMA journal_mode=DELETE;CREATE TABLE IF NOT EXISTS owner(id INTEGER);BEGIN EXCLUSIVE');}
   catch(error){this.lock.close();throw Error('Resources directory already has an owner or its exclusive lease is unavailable',{cause:error});}
   try{
-   this.db=new DatabaseSync(join(directory,'resources-quiescence.sqlite'));this.db.exec('PRAGMA journal_mode=WAL;PRAGMA synchronous=FULL;CREATE TABLE IF NOT EXISTS fence(id INTEGER PRIMARY KEY CHECK(id=1),value TEXT);CREATE TABLE IF NOT EXISTS receipts(id TEXT PRIMARY KEY,value TEXT);');
+   preflightOwner(directory);
+   this.db=new DatabaseSync(join(directory,'resources-quiescence.sqlite'));this.db.exec('PRAGMA journal_mode=WAL;PRAGMA synchronous=FULL;');initializeSchema(this.db,'quiescence',[],()=>this.db.exec('CREATE TABLE IF NOT EXISTS fence(id INTEGER PRIMARY KEY CHECK(id=1),value TEXT);CREATE TABLE IF NOT EXISTS receipts(id TEXT PRIMARY KEY,value TEXT);'));
    const prior=this.current();if(prior)this.save({...prior,state:'unknown'});
   }catch(error){this.db?.close();this.lock.close();throw error;}
  }
