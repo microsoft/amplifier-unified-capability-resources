@@ -103,3 +103,22 @@ acceptance. They also retain the supported partial Store/offline-import paths an
 atomic namespace enrollment. This guard adds no client operation or new recovery
 authority. The documented row-deletion, whole-database-loss and constraint-validation
 limits remain explicit; it is not a general integrity or automatic repair claim.
+
+
+## Distribution admission abort participant
+
+The coordinator-approved Host admission-abort callback uses this existing resource
+SQLite authority, including attachment uploads; it introduces no shared gate or
+backward dependency on distribution update implementation. The embedding Host
+authenticates the distinct `distribution-admission-abort` proof. The callback
+validates the exact original owner/command/fence/instance/data-scope and returns
+only a durable `released` or `not-acquired` owner receipt.
+
+[Admission-abort tests](../test/admission-abort.test.mjs) falsify inferred refusal
+from a missing hold, legacy-unknown promotion, changed proof/identity, active-work
+settlement, partial receipt/clear commits, or reacquisition/re-execution after lost
+reply or restart. Durable busy refusals cannot silently turn into acquisitions.
+The original proof signature and receipt survive process replacement; retries do
+not clear unrelated later holds. The [README](../README.md#authenticated-distribution-admission-abort)
+defines the exact private callback shape. Actual aggregate/Host authenticated proof
+composition, package adoption and live deployment remain separate acceptance.

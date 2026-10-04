@@ -176,6 +176,43 @@ known aggregate admission refusal with `{kind:'admission-refused'}` and outcome
 requires the prior host instance and `ready` a verified replacement. These methods
 are private composition ports, not browser actions.
 
+### Authenticated distribution admission abort
+
+The private participant also implements `abortAdmission({...context, proof})` for
+the Host's coordinator-approved pre-retirement distribution admission abort. The
+embedding Host must authenticate the supervisor's proof before this callback;
+`verified:true` is its trusted result, not a caller assertion or browser action.
+The proof must contain exactly:
+
+```js
+{kind: 'distribution-admission-abort', verified: true,
+ purpose: 'distribution-update', commandId, fenceId, instanceId, dataScope,
+ receiptId: authenticatedSupervisorReceiptId}
+```
+
+The context binds the same four IDs and purpose. The participant's originally
+registered `ownerId` also binds its durable attempt. It returns exactly
+`{ownerId, status: 'released' | 'not-acquired', receiptId,
+commandId, fenceId, instanceId, dataScope}`. Feedback composition must forward the
+same upload owner ID used for acquisition and retain this distinct subowner
+receipt. Generic release proofs cannot authorize admission abort.
+
+New distribution acquisition stores a versioned original attempt with the held
+fence in one transaction. A busy `null` refusal stores a durable `not-acquired`
+attempt first; retrying that exact refusal never acquires after the work finishes.
+A new acquisition attempt needs a new fence identity. Abort refuses while resource
+work is active, on changed identities/proof, or without the original attempt.
+A missing live fence is not evidence of refusal. An acquired attempt requires its
+matching held/unknown fence or an already conclusive retained release receipt.
+Legacy unknown records without the original attempt marker remain unknown.
+
+Abort commits its exact receipt and fence removal atomically. After a lost reply
+or restart, exact proof retry returns the original receipt without acquisition,
+resource writes or replay. Retrying a completed old abort cannot clear a newer
+held fence. This only settles owner admission; it does not run an update, settle
+an unknown resource effect, modify upload bytes, or grant recovery from missing
+journals. Existing startup-schema admission and release ports remain in force.
+
 Offline legacy imports now require the destination owner to be closed and its
 retained intake fence released conclusively. This preserves later destination
 edits while preventing an importer from bypassing recovery ownership.
