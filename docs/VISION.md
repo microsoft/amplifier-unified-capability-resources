@@ -9,11 +9,10 @@ must perform bounded work on that resource and its actual dependencies. Historic
 existence alone must not hydrate bodies or start an agent.
 
 This is the local application of the distribution-owned approved
-[family vision](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/docs/architecture/VISION.md)
-and [component map](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/docs/architecture/repositories.md).
-Those links identify the reviewed source packet; the distribution owner supplies
-its published canonical location. This document does not independently ratify new
-scope or replace upstream AHP/ACP semantics.
+[family vision](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/docs/architecture/VISION.md)
+and [component map](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/docs/architecture/repositories.md).
+Those links follow the distribution’s published preview branch. This document does
+not independently ratify new scope or replace upstream AHP/ACP semantics.
 
 ## Desired outcomes and ownership
 
