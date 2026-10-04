@@ -1,3 +1,4 @@
+import {initializeSchema} from './authoritative-schema.js';
 /** Immutable historical evidence. Only the trusted, verifying portability owner calls staging. */
 import {createHash} from 'node:crypto';
 import {statSync,readFileSync,openSync,closeSync,fstatSync,readSync,constants} from 'node:fs';
@@ -8,7 +9,7 @@ const json=value=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'
 const bytes=value=>Buffer.byteLength(json(value));
 function checkIdentity(value){if(typeof value!=='string'||!value||value.length>8192)throw Error('Bounded transfer identity required');return value;}
 export class ResourceEvidence{
- constructor(store,context){this.store=store;this.context=context;this.db=store.db;this.db.exec(`CREATE TABLE IF NOT EXISTS transfer_exports(id TEXT PRIMARY KEY,session TEXT,envelope TEXT);CREATE TABLE IF NOT EXISTS transfer_evidence(id TEXT PRIMARY KEY,source TEXT,native TEXT,hash TEXT,envelope TEXT,session TEXT,release TEXT);CREATE INDEX IF NOT EXISTS transfer_evidence_session ON transfer_evidence(session,id);`);}
+ constructor(store,context){this.store=store;this.context=context;this.db=store.db;initializeSchema(this.db,'resources',['transfer'],()=>this.db.exec(`CREATE TABLE IF NOT EXISTS transfer_exports(id TEXT PRIMARY KEY,session TEXT,envelope TEXT);CREATE TABLE IF NOT EXISTS transfer_evidence(id TEXT PRIMARY KEY,source TEXT,native TEXT,hash TEXT,envelope TEXT,session TEXT,release TEXT);CREATE INDEX IF NOT EXISTS transfer_evidence_session ON transfer_evidence(session,id);`));}
  export=async(args)=>{const session=checkIdentity(args.session),id=checkIdentity(args.transferId);await this.context(session);const limit=Math.min(args.limitBytes??MAX,MAX);if(!Number.isSafeInteger(limit)||limit<1024)throw Error('Evidence budget must be at least 1024 bytes');const prior=this.db.prepare('SELECT * FROM transfer_exports WHERE id=?').get(id);if(prior){if(prior.session!==session)throw Error('Transfer identity belongs to another conversation');const value=JSON.parse(prior.envelope);if(value.bytes>limit||args.expectedRevision!==undefined&&args.expectedRevision!==value.revision)throw Error('Stored evidence bound or revision changed');return value;}
  const records=[],omissions=[],body={sourceSession:session,historicalOnly:true,records};let used=bytes(body);
  const add=record=>{const size=bytes(record)+1;if(records.length>=500||used+size>limit)return false;records.push(record);used+=size;return true;};

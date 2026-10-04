@@ -387,3 +387,40 @@ rows. Absence from inline evidence is permitted only through that signed selecti
 never through a caller claim. Existing 500-body, 200-JavaScript-code-unit identifier,
 64-MiB/body and 1-GiB selection limits still require negotiation/refusal or separately
 reviewed omissions. The resources callback grants no release/activation permission.
+
+## Authoritative database startup admission
+
+Resource metadata is authoritative, even where it is called an index: artifact
+ownership and versions, app state/effect receipts, upload identities, transfer
+bindings, import journals and revision counters cannot be recovered from immutable
+body files. A missing authority table is not an empty healthy store.
+
+After acquiring the existing process OS lease, startup validates both
+`resources.sqlite` and `resources-quiescence.sqlite` through read-only connections
+before either writable open or restart fence normalization. A main database is
+new only when it and its `-wal`, `-shm` and `-journal` entries are all absent;
+empty or dangling sidecar entries also refuse. Existing empty, unsupported,
+incomplete or incompatible schemas fail closed with originals retained. SQLite
+may create empty WAL/SHM coordination files during a read-only WAL connection;
+retained main and existing WAL bytes are preserved on schema refusal.
+
+The guard checks a fixed, bounded set of schema metadata, not resource rows or
+body files. Completed historical Store/factory/import profiles are recognized
+explicitly. New namespace enrollment and table creation share a SQLite savepoint,
+including inside the offline importer's transaction. A versioned namespace cannot
+be silently recreated if its tables disappear. Independent process-lock state and
+SQL lookup indexes remain rebuildable. Selected body integrity checks are unchanged.
+
+This does not detect valid row deletion, coherent database replacement, deletion
+of the main plus all sidecars, or legacy damage indistinguishable from a complete
+supported historical profile. Column names/types and table identity are checked;
+this is not comprehensive PK/UNIQUE/NOT NULL/trigger or general SQLite integrity
+validation. It does not repair, copy or reconstruct authority. Recovery remains
+an explicit owner/operator task, and unknown effects are never replayed.
+
+[Fault and migration tests](test/authoritative-schema.test.mjs) cover every retained
+authority table, cross-file admission ordering, actual interrupted-owner WALs,
+orphan sidecars, nested enrollment rollback and historical profile upgrades.
+The [historical DDL fixtures](test/fixtures/legacy-schemas.json) record their exact
+source revisions. Source and installed-package qualification remain distinct from
+product/browser or live deployment acceptance.

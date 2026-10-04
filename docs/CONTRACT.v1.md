@@ -86,3 +86,20 @@ selection digest/revision/descriptors/omissions with the existing evidence and p
 binding and authenticate them on the destination. Source metadata itself is not
 signed-release authority. Actual adapter/native signed-transfer qualification
 remains separate from this owner callback's source and installed tests.
+
+## Authoritative startup schema admission
+
+The existing preservation and held-intake promises also apply to missing durable
+schema. [Startup admission](../README.md#authoritative-database-startup-admission)
+validates the two retained owner journals before writable initialization, under
+the original process lease. Missing previously enrolled tables must refuse rather
+than erase visibility, an original command identity or an unknown effect barrier.
+Fixed metadata inspection preserves bounded startup work; immutable bodies are
+not scanned or treated as a substitute for the unique receipt/version mappings.
+
+[Schema fault tests](../test/authoritative-schema.test.mjs) falsify silent recreation,
+crash-left main/WAL modification on refusal, or incompatible historical profile
+acceptance. They also retain the supported partial Store/offline-import paths and
+atomic namespace enrollment. This guard adds no client operation or new recovery
+authority. The documented row-deletion, whole-database-loss and constraint-validation
+limits remain explicit; it is not a general integrity or automatic repair claim.

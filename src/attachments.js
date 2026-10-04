@@ -1,3 +1,4 @@
+import {initializeSchema} from './authoritative-schema.js';
 /** Immutable attachment bodies. Browser drafts never enter this store. */
 import {mkdirSync,openSync,closeSync,writeSync,readSync,fsyncSync,fstatSync,ftruncateSync,chmodSync,constants} from 'node:fs';
 import {open} from 'node:fs/promises';
@@ -21,7 +22,7 @@ const fingerprint=args=>hash(JSON.stringify([args.name,args.contentType,args.siz
 const toURI=(id,path,session)=>{const uri=new URL(`amplifier-attachment://${id}/${path}`);uri.searchParams.set('session',session);return uri.href;};
 export class Attachments{
  constructor(store,context){this.db=store.db;this.context=context;this.directory=join(store.directory,'attachments');mkdirSync(this.directory,{recursive:true,mode:0o700});this.locks=new Map();this.waiting=0;this.closed=false;
-  this.db.exec(`CREATE TABLE IF NOT EXISTS attachments(id TEXT PRIMARY KEY,session TEXT NOT NULL,request TEXT NOT NULL,fingerprint TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,sha TEXT NOT NULL,received INTEGER NOT NULL,status TEXT NOT NULL,created REAL NOT NULL,committed_request TEXT,UNIQUE(session,request));CREATE INDEX IF NOT EXISTS attachments_active ON attachments(status,session);CREATE INDEX IF NOT EXISTS attachments_session ON attachments(session,id);CREATE INDEX IF NOT EXISTS attachment_transfer_page ON attachments(session,status,id);CREATE TABLE IF NOT EXISTS attachment_metadata_revisions(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);`);
+  initializeSchema(this.db,'resources',['attachments','attachmentRevisions'],()=>this.db.exec(`CREATE TABLE IF NOT EXISTS attachments(id TEXT PRIMARY KEY,session TEXT NOT NULL,request TEXT NOT NULL,fingerprint TEXT NOT NULL,name TEXT NOT NULL,mime TEXT NOT NULL,size INTEGER NOT NULL,sha TEXT NOT NULL,received INTEGER NOT NULL,status TEXT NOT NULL,created REAL NOT NULL,committed_request TEXT,UNIQUE(session,request));CREATE INDEX IF NOT EXISTS attachments_active ON attachments(status,session);CREATE INDEX IF NOT EXISTS attachments_session ON attachments(session,id);CREATE INDEX IF NOT EXISTS attachment_transfer_page ON attachments(session,status,id);CREATE TABLE IF NOT EXISTS attachment_metadata_revisions(session TEXT PRIMARY KEY,revision INTEGER NOT NULL);`));
  }
  revision(session){return hash(JSON.stringify([session,this.db.prepare('SELECT revision FROM attachment_metadata_revisions WHERE session=?').get(session)?.revision??0]));}
  touch(session){this.db.prepare('INSERT INTO attachment_metadata_revisions VALUES(?,1) ON CONFLICT(session) DO UPDATE SET revision=revision+1').run(session);}
