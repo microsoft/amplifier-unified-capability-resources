@@ -461,3 +461,38 @@ orphan sidecars, nested enrollment rollback and historical profile upgrades.
 The [historical DDL fixtures](test/fixtures/legacy-schemas.json) record their exact
 source revisions. Source and installed-package qualification remain distinct from
 product/browser or live deployment acceptance.
+
+## Trusted fork attachment binding
+
+The embedding Host may supply `verifyForkAttachmentBinding` to
+`createResourcesCapability` and call the private `retainForkAttachments(request)`
+callback. This is not a wire action. Host verifies its durable completed Native
+fork and the exact copied prefix, then returns `{verified:true, commandId,
+requestDigest, projectionDigest, targetSession}` for the exact request. Resources
+requires all five fields; an absent or mismatched verifier refuses without a grant.
+The request digest is SHA-256 of compact UTF-8 JSON with recursively sorted object
+keys and original array order. Request/receipt shapes follow the coordinator's
+sealed fork-presentation v1 protocol, not a moving Host source import.
+
+The request supplies `binding` (version 1, original command/engine, source and target
+Host session/Native ID/history revision, optional boundary, `workReplayed:false`),
+`projectionDigest`, and selected `items` (turn ID, source/target canonical row
+anchors, attachment URI/name/type/size/SHA-256). Resources checks each exact source
+URI against its own committed metadata. It copies into new target-owned IDs;
+original rows, URIs and bytes remain intact. Limits are 64 selected attachments,
+256 MiB total, 32 MiB per file, 256 KiB per chunk, and a 2 MiB request.
+
+The complete plan and target IDs are persisted before copying. Target descriptors
+become visible together only after every copy is verified, synced and committed.
+Retries reuse the original mapping and verify retained bytes; changed requests for
+an existing command refuse. Copy failure returns `unknown` with no descriptors;
+pending/unknown operations protect both sessions during retention/disposal. A
+retry may finish Resources copying but never reruns Native fork or model work.
+The operation uses existing owner intake, exclusive lease and quiescence effects.
+The original exact-session prompt guard still applies to every target descriptor.
+
+This factory enrolls a new authoritative schema namespace. Older packages that
+do not know it cannot safely open an upgraded directory; preserve the pre-upgrade
+snapshot for rollback. No automated downgrade or deletion of pending bytes is
+provided. This is Resources-only acceptance; trusted Host composition, installed
+graph, browser and real target execution remain separate checks.
