@@ -10,6 +10,7 @@ import {ResourceEvidence} from './transfer.js';
 import {ResourceQuiescence} from './quiescence.js';
 import {CanvasApps} from './apps.js';
 import {actionSchemas} from './actions.js';
+import {ForkAttachments} from './fork-attachments.js';
 import {Attachments,attachmentSchemas,CHUNK_BYTES,MAX_ATTACHMENT} from './attachments.js';
 const kinds=new Set(['text','markdown','code','html','mermaid','dot','json','jsonl','image','a2ui','browser','babylon']);
 const now=()=>Date.now()/1000;
@@ -67,13 +68,13 @@ async function definition(context,args){
  return {definition:value,body:{...(content!==undefined?{content}:{}),...(surface!==undefined?{surface}:{})}};
 }
 
-export function createResourcesCapability({directory,inspectSession,onChanged=()=>{},onMayBeIdle=()=>{},verifyTransferPayloadPlan}){
+export function createResourcesCapability({directory,inspectSession,onChanged=()=>{},onMayBeIdle=()=>{},verifyTransferPayloadPlan,verifyForkAttachmentBinding}){
  const store=new ResourceStore(directory,{onMayBeIdle}),apps=new CanvasApps(store);const operations=['canvas.show','canvas.openFile','canvas.versions.inspect','canvas.versions.revise','canvas.versions.restore','canvas.reference','canvas.event',...apps.operations];
  const originalDescriptor=store.descriptor.bind(store);store.descriptor=(row,version)=>{const value=apps.decorate(originalDescriptor(row,version));if(!value.external)return value;const {external,editableUri,...rest}=value;return {...rest,...external};};
  const manifest={version:1,topics:{canvas:{uri:'amplifier-capability://canvas',version:1,watch:true}},actions:Object.fromEntries(operations.map(operation=>[operation,{topic:'canvas',operation,method:'x-amplifier/capabilityAction'}]))};
  const context=async session=>{if(typeof session!=='string'||!session.startsWith('ahp-session:/'))fail('Canvas requires an explicit conversation');const value=await inspectSession(session);if(value.session!==session)fail('Conversation scope changed',-32009);return value;};
  const transfer=new ResourceEvidence(store,context),payloads=new HistoricalPayloads(store,context,verifyTransferPayloadPlan);
- const attachments=new Attachments(store,context);manifest.topics.attachments={uri:'amplifier-capability://attachments',version:1,watch:false};for(const operation of Object.keys(attachmentSchemas))manifest.actions[operation]={topic:'attachments',operation,method:'x-amplifier/capabilityAction'};
+ const attachments=new Attachments(store,context),forkAttachments=new ForkAttachments(store,attachments,context,verifyForkAttachmentBinding);manifest.topics.attachments={uri:'amplifier-capability://attachments',version:1,watch:false};for(const operation of Object.keys(attachmentSchemas))manifest.actions[operation]={topic:'attachments',operation,method:'x-amplifier/capabilityAction'};
  const snapshot=async(scope,query={})=>{await context(scope);const page=store.list(scope,query);return {topic:'canvas',scope,revision:store.revision(scope),data:{canvasArtifacts:page.items,canvasPage:{nextCursor:page.nextCursor}}};};
  const read=async({uri,scope,topic})=>{const parsed=new URL(uri);if(topic==='attachments'||parsed.hostname==='attachments'){await context(scope);return {topic:'attachments',scope,revision:1,data:{attachmentLimits:{chunkBytes:CHUNK_BYTES,maxFileBytes:MAX_ATTACHMENT,maxFiles:8}}};}if(parsed.searchParams.has('id')){await context(scope);const row=store.row(scope,parsed.searchParams.get('id'));const version=parsed.searchParams.has('version')?Number(parsed.searchParams.get('version')):undefined;return {topic:'canvas',scope,revision:store.revision(scope),data:{canvasArtifacts:[store.descriptor(row,version)]}};}return snapshot(scope,{limit:parsed.searchParams.has('limit')?Number(parsed.searchParams.get('limit')):50,cursor:parsed.searchParams.get('cursor')||undefined});};
  const quiescenceAccess=Object.fromEntries(['canvas.versions.inspect','canvas.reference','canvas.apps.inspect','attachments.inspect'].map(name=>[name,'read']));
@@ -113,6 +114,7 @@ export function createResourcesCapability({directory,inspectSession,onChanged=()
  store.db.exec(`CREATE INDEX IF NOT EXISTS retention_apps ON app_states(artifact,state_revision) WHERE instr(summary,'"status":"pending"')>0 OR instr(summary,'"status":"unknown"')>0;`);
  store.quiescence.retentionReferences=sessions=>({coverage:'complete',protected:sessions.flatMap(session=>{
   const reasons=[];
+  if(forkAttachments.protected(session))reasons.push('fork-attachment-binding');
   if(attachments.db.prepare("SELECT 1 FROM attachments WHERE status='uploading' AND session=? LIMIT 1").get(session))reasons.push('attachment-upload');
   if(store.db.prepare(`SELECT 1 FROM artifacts a JOIN apps app ON app.artifact=a.id JOIN app_states st ON st.artifact=a.id AND st.state_revision=app.state_revision WHERE a.session=? AND (instr(st.summary,'"status":"pending"')>0 OR instr(st.summary,'"status":"unknown"')>0) LIMIT 1`).get(session))reasons.push('canvas-request');
   return reasons.length?[{session,reasons}]:[];
@@ -128,5 +130,5 @@ export function createResourcesCapability({directory,inspectSession,onChanged=()
   });
  };
  const attachmentProvider={scheme:'amplifier-attachment',read:params=>attachments.read(params),resolve:params=>attachments.resolve(params),write:params=>store.quiescence.effect(()=>attachments.write(params))};
- return {exportTransferEvidence:args=>store.quiescence.effect(()=>transfer.export(args)),stageTransferEvidence:args=>store.quiescence.effect(()=>transfer.stage(args)),activateTransferEvidence:args=>store.quiescence.effect(()=>{payloads.requireActivation(args);return transfer.activate(args);}),stageTransferPayloads:args=>store.quiescence.effect(()=>payloads.stage(args)),readTransferPayloadMetadata:payloads.read,readTransferPayloadBody:payloads.readBody,readTransferEvidence:transfer.read,readTransferBody:transfer.readBody,manifest,read,action,quiescenceAccess,quiescenceParticipant:ownerId=>store.quiescence.participant(ownerId),inspectQuiescence:()=>store.quiescence.inspect(),actionSchemas:{...actionSchemas,...attachmentSchemas},resourceProvider,resourceProviders:[resourceProvider,attachmentProvider],readTransferAttachmentMetadata:args=>attachments.transferMetadata(args),resolvePromptAttachment:(ctx,attachment,options)=>attachments.prompt(ctx,attachment,options),registerExternal,store,close:()=>{store.quiescence.assertClosable();attachments.close();store.close();}};
+ return {retainForkAttachments:request=>store.quiescence.effect(()=>forkAttachments.retain(request)),exportTransferEvidence:args=>store.quiescence.effect(()=>transfer.export(args)),stageTransferEvidence:args=>store.quiescence.effect(()=>transfer.stage(args)),activateTransferEvidence:args=>store.quiescence.effect(()=>{payloads.requireActivation(args);return transfer.activate(args);}),stageTransferPayloads:args=>store.quiescence.effect(()=>payloads.stage(args)),readTransferPayloadMetadata:payloads.read,readTransferPayloadBody:payloads.readBody,readTransferEvidence:transfer.read,readTransferBody:transfer.readBody,manifest,read,action,quiescenceAccess,quiescenceParticipant:ownerId=>store.quiescence.participant(ownerId),inspectQuiescence:()=>store.quiescence.inspect(),actionSchemas:{...actionSchemas,...attachmentSchemas},resourceProvider,resourceProviders:[resourceProvider,attachmentProvider],readTransferAttachmentMetadata:args=>attachments.transferMetadata(args),resolvePromptAttachment:(ctx,attachment,options)=>attachments.prompt(ctx,attachment,options),registerExternal,store,close:()=>{store.quiescence.assertClosable();attachments.close();store.close();}};
 }

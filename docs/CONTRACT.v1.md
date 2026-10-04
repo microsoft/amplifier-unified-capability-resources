@@ -122,3 +122,21 @@ The original proof signature and receipt survive process replacement; retries do
 not clear unrelated later holds. The [README](../README.md#authenticated-distribution-admission-abort)
 defines the exact private callback shape. Actual aggregate/Host authenticated proof
 composition, package adoption and live deployment remain separate acceptance.
+
+## Fork attachment binding
+
+The trusted Host-to-Resources callback in the [README](../README.md#trusted-fork-attachment-binding)
+implements the coordinator-approved sealed fork presentation v1 boundary.
+Resources owns new target grants and immutable streamed copies. Host alone owns
+completed Native lifecycle and exact source-prefix/target-row proof. Browser parent
+links, historical transfer evidence and URI query rewriting never grant authority.
+
+[Focused tests](../test/fork-attachments.test.mjs) cover absent/mismatched proof,
+changed command digest, source scope and unfinished uploads, bounds before plan
+allocation, source integrity, all-or-none visibility after process crash, stable
+restart IDs, exact partial-prefix recovery, corrupted-prefix refusal, readonly
+stage recovery, empty and multi-chunk bodies, and bounded admission/quiescence.
+Existing attachment, metadata, schema, retention, managed-disposal and admission
+checks preserve their prior contracts. Schema admission retains its documented
+row-deletion and whole-database-loss limitations; this adds no repair authority.
+No test here authenticates an actual Host callback or proves browser/model use.
