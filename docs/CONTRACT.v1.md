@@ -7,14 +7,14 @@ resource semantics and ACP content types remain authoritative. Optional Unified
 capabilities require negotiation; saved configuration is not mounted behavior.
 
 The approved shared clauses are distribution-owned:
-[HP](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/contracts/host-protocol.v1.md),
-[AP](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/contracts/agent-protocol.v1.md),
-[WS](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/contracts/working-set.v1.md),
-[CB](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/contracts/component-boundaries.v1.md),
-[CS](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/contracts/client-state.v1.md),
-[CX](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/contracts/client-experience.v1.md), and
-[CD](/Users/brkrabac/.codex/.chatgpt-projects/g-p-68d68d20c6a48191bae1ab4584d199f6/worktrees/ahp-acp-distribution-20261002/contracts/client-development.v1.md).
-These review-source links do not claim that the distribution packet is published.
+[HP](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/contracts/host-protocol.v1.md),
+[AP](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/contracts/agent-protocol.v1.md),
+[WS](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/contracts/working-set.v1.md),
+[CB](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/contracts/component-boundaries.v1.md),
+[CS](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/contracts/client-state.v1.md),
+[CX](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/contracts/client-experience.v1.md), and
+[CD](https://github.com/microsoft/amplifier-unified/blob/preview/ahp-acp-preview/contracts/client-development.v1.md).
+These links follow the distribution’s published preview branch; they do not claim release or deployment acceptance.
 
 ## Boundaries, promises and falsifiers
 
