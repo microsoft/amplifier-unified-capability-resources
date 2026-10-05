@@ -461,3 +461,20 @@ orphan sidecars, nested enrollment rollback and historical profile upgrades.
 The [historical DDL fixtures](test/fixtures/legacy-schemas.json) record their exact
 source revisions. Source and installed-package qualification remain distinct from
 product/browser or live deployment acceptance.
+
+## Original attachment references after a Native fork
+
+Trusted composition may register `verifyOriginalAttachment` and call
+`retainForkAttachments({version:2, commandId, target:{row,blockIndex}})` for each
+preserved original card. The verifier must read the original completed Native
+fork receipt and exact persisted source/target occurrence; browser fields cannot
+supply that authority. The canonical owner URI stays unchanged. A separate passive
+`resolveOriginalAttachment(targetHostSession, reference)` returns its scoped
+access URI after Resources commits verified target-owned bytes. Ordinary history
+reads never create missing grants or replay a fork.
+
+See the [v2 contract and limits](docs/CONTRACT.v1.md#preserved-originals-and-fork-attachment-grants--v2)
+and [trusted port types](docs/fork-originals.v2.d.ts). The new mutation namespace is
+incompatible with older writers, preserves v1 records verbatim and enrolls only
+on an explicit verified copy, not during an ordinary lookup. Keep the pre-upgrade
+owner snapshot for rollback. The strict existing prompt attachment scope remains.
