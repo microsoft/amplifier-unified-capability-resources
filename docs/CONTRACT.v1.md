@@ -122,3 +122,57 @@ The original proof signature and receipt survive process replacement; retries do
 not clear unrelated later holds. The [README](../README.md#authenticated-distribution-admission-abort)
 defines the exact private callback shape. Actual aggregate/Host authenticated proof
 composition, package adoption and live deployment remain separate acceptance.
+
+## Preserved originals and fork attachment grants — v2
+
+This coordinator-approved amendment uses the existing Resources attachment byte
+and grant authority. [The v2 port types](fork-originals.v2.d.ts) describe one trusted
+occurrence per request. `verifyOriginalAttachment` authenticates the completed
+original Native fork receipt, exact persisted target row/block, immediate source
+lineage and Host/native/engine scopes. The callback is not caller-supplied proof.
+Every occurrence is verified, including retries that share a completed grant.
+Resources independently validates its original handle and committed bytes.
+
+Canonical original references never change. `resolveOriginalAttachment` performs
+an authenticated target-scope, indexed read and returns a separate `accessUri`
+only for a committed grant. It does not copy, enroll a namespace, start Native,
+repair a receipt or write during history viewing. Missing returns `null`;
+`pending`/`unknown` remains unresolved. The existing exact-session prompt guard
+still rejects an original source URI when presented directly in a target session.
+A chain A→B→C copies B's qualified owner bytes, even when the original URI names A.
+
+Grant work is keyed by original fork command, target Host session and unchanged
+owner reference. Repeated row/block occurrences can share that grant; they cannot
+change its original Native authority or source binding. Calls and copies are
+bounded (one occurrence, 8 KiB request, 32 KiB trusted proof, 32 MiB/file, 256 KiB
+chunks, 64 concurrent callers). There is no total card or session-enumeration cap.
+Host owns revision-consistent Native paging and must report partial progress.
+Later ordinary appends do not replace the receipt's creation revision: the trusted
+verifier qualifies the exact immutable row identity, including its epoch.
+
+Before copying, the exact deterministic target ID and immutable plan are durable
+in `resources.sqlite`. Attachment registration and completed grant commit together
+after verified, synced bytes. Interruption leaves pending/unknown authority, no
+usable grant. Explicit same-grant retry validates retained byte prefixes and
+resumes those IDs; it never reforks Native. Validation/verifier refusal before
+reservation throws without a grant; it never settles an older unknown record.
+Incomplete grants protect source and target from retention/disposal.
+
+The lazily enrolled `forkOriginalsV2` schema bit/table is distinct from the retained
+v1 `forkAttachments` bit/table. Existing v1 receipts are recognized and preserved
+verbatim, including unknown protection; they are not converted into v2 grants.
+Existing target-owned attachments keep their ordinary access guards. This change
+provides no v1 grant mutation or automatic v1-to-v2 migration. A command with a
+retained v1 binding cannot be reused for v2 qualification without an explicit
+owner migration; new qualified fork commands remain independent. Opening a v2 database
+with an older writer refuses before writable startup; preserve a pre-upgrade
+snapshot for rollback. Missing enrolled v2 schema also refuses, using the existing
+owner lease and read-only startup preflight. No new database, Native map or Host
+projection journal is introduced.
+
+[Focused tests](../test/fork-originals-v2.test.mjs) cover repeated occurrences and
+more than 64 distinct cards, chained bytes, cold retry, interruption, untrusted or
+stale occurrence refusal, namespace compatibility and held intake. These are
+actual temporary byte/SQLite source tests with a controlled trusted verifier.
+Actual Native/Host verification, browser materialization, account and deployed
+acceptance remain separate composition gates.

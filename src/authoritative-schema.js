@@ -13,6 +13,8 @@ const columns={
  app_definitions:'artifact:TEXT revision:INTEGER state_revision:INTEGER',
  attachments:'id:TEXT session:TEXT request:TEXT fingerprint:TEXT name:TEXT mime:TEXT size:INTEGER sha:TEXT received:INTEGER status:TEXT created:REAL committed_request:TEXT',
  attachment_metadata_revisions:'session:TEXT revision:INTEGER',
+ fork_attachment_bindings:'command:TEXT digest:TEXT source:TEXT target:TEXT request:TEXT plan:TEXT status:TEXT error:TEXT created:REAL',
+ fork_attachment_grants_v2:'key:TEXT command:TEXT source:TEXT target:TEXT reference:TEXT binding:TEXT plan:TEXT status:TEXT error:TEXT created:REAL',
  transfer_exports:'id:TEXT session:TEXT envelope:TEXT',
  transfer_evidence:'id:TEXT source:TEXT native:TEXT hash:TEXT envelope:TEXT session:TEXT release:TEXT',
  transfer_payloads:'id:TEXT binding:TEXT records:TEXT',transfer_payload_pending:'id:TEXT binding:TEXT',
@@ -27,6 +29,9 @@ const namespaces={
  payloads:{bit:16,tables:['transfer_payloads','transfer_payload_pending']},
  imports:{bit:32,tables:['legacy_document_imports']},
  attachmentRevisions:{bit:64,tables:['attachment_metadata_revisions']},
+ // v1 is retained verbatim; v2 does not reinterpret or rewrite it.
+ forkAttachments:{bit:128,tables:['fork_attachment_bindings']},
+ forkOriginalsV2:{bit:256,tables:['fork_attachment_grants_v2']},
 };
 // Completed public factory epochs: 63389cc, 2732a8c, 64a0dfe, 4c4148e,
 // 3498bd1. ResourceStore and reviewed offline imports also create partial stores.
@@ -54,7 +59,7 @@ function metadata(db,kind,{fresh=false}={}){
   if(count&&count!==tables.length)refuse();
   if(count){bits|=bit;expected+=count;}
  }
- if(expected!==names.size||!(bits&1)||(bits&16)&&!(bits&8)||(bits&64)&&!(bits&4))refuse();
+ if(expected!==names.size||!(bits&1)||(bits&16)&&!(bits&8)||(bits&64)&&!(bits&4)||(bits&128)&&!(bits&4)||(bits&256)&&!(bits&64))refuse();
  if(version===0){if(!legacyProfiles.has(bits))refuse();}
  else if(version!==resourcesVersion+bits)refuse();
  return bits;
