@@ -28,6 +28,19 @@ source input at 4 MiB and saved bodies at 6 MiB (including JSON escaping). Stand
 and an exact `ifMatch` value; conflicts preserve both stored versions and the
 client's unfinished input. Editing a saved artifact never writes its source file.
 
+CanvasApps can request a bounded live status feed with a declared request whose
+action is `coordination.watch` and input is exactly
+`{targets:[{sessionId:"ahp-session:/...",workerId?}]}` (one to eight unique targets).
+The client reviews the exact targets, validates them through the coordination
+owner, and binds access to its selected app and definition revision. The Resources
+owner only journals the review and claim; it does not read targets or start work.
+Authored code subscribes with `canvasApp.coordination.subscribe(listener)` or reads
+`canvasApp.coordination.getSnapshot()`. The version-1 snapshot contains sequence,
+status (off/live/unavailable), and bounded target status/recent report excerpts.
+It is ephemeral and independent of saved app state and unfinished edits.
+Clients revoke it on hiding, navigation, revision change, disconnect, or reload.
+Stored completion receipts never re-enable access. Use a new reviewed request.
+
 CanvasApps have separate definition and state revisions. Declared events and
 state patches are validated against bounded JSON Schema; external references and
 regular expressions are excluded. Metadata includes neither shared state bodies

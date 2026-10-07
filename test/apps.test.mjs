@@ -8,6 +8,20 @@ const session='ahp-session:/one';
 const manifest={version:1,stateSchema:{type:'object',properties:{count:{type:'integer'}},required:['count'],additionalProperties:false},events:{set:{schema:{type:'object',properties:{next:{type:'integer'}},required:['next']},updates:{count:'next'}}},requests:{preview:{action:'theme.preview',schema:{type:'object',properties:{name:{type:'string'},css:{type:'string'}},required:['name','css']}}}};
 async function fixture(){const root=await mkdtemp(join(tmpdir(),'unified-apps-')),workspace=join(root,'workspace');await mkdir(workspace);const cap=createResourcesCapability({directory:join(root,'resources'),inspectSession:async s=>{assert.equal(s,session);return {session:s,workingDirectory:workspace};}});return {root,workspace,cap,act:(operation,args={},clientId='client-a')=>cap.action({topic:'canvas',version:1,channel:session,operation:'canvas.apps.'+operation,args},{clientId}),async close(){cap.close();await rm(root,{recursive:true,force:true});}};}
 async function create(f){return (await f.act('create',{title:'Counter',content:'<input>',manifest,initialState:{count:1}})).result;}
+test('live dashboard request has intrinsic bounds even under a permissive manifest and requires an exact client claim',async()=>{
+ const f=await fixture();try{
+  const spec={...manifest,requests:{watch:{action:'coordination.watch',schema:{type:'object'}}}};
+  const {artifact:{id}}=(await f.act('create',{title:'Live',content:'<div>',manifest:spec,initialState:{count:1}})).result;
+  for(const input of [{targets:[]},{targets:Array(9).fill({sessionId:session})},{targets:[{sessionId:session},{sessionId:session}]},{targets:[{sessionId:session,text:'send'}]},{targets:[{sessionId:'*'}]},{targets:[{sessionId:session}],send:true}])
+   await assert.rejects(f.act('request',{id,expectedRevision:1,expectedStateRevision:0,name:'watch',input}));
+  const input={targets:[{sessionId:session,workerId:'worker'}]},requested=(await f.act('request',{id,expectedRevision:1,expectedStateRevision:0,name:'watch',input})).result;
+  const requestId=requested.app.requests[0].id;
+  const claimed=(await f.act('resolve',{id,requestId,expectedRevision:1,expectedStateRevision:1,approve:true,phase:'claim'})).result;
+  assert.deepEqual(claimed.effect.args,input);assert.equal(claimed.effect.action,'coordination.watch');
+  await assert.rejects(f.act('resolve',{id,requestId,expectedRevision:1,expectedStateRevision:2,approve:true,phase:'claim'},'other'));
+  assert.deepEqual(claimed.app.state,{count:1});
+ }finally{await f.close();}
+});
 test('CanvasApp shared state uses two revisions, immutable bodies and metadata-only lists',async()=>{
  const f=await fixture();try{const first=await create(f),id=first.artifact.id;const changed=(await f.act('event',{id,expectedRevision:1,expectedStateRevision:0,name:'set',payload:{next:2}})).result;
   assert.equal(changed.app.state.count,2);assert.equal(changed.app.revision,1);assert.equal(changed.app.stateRevision,1);assert.notEqual(changed.artifact.bodyUri,first.artifact.bodyUri);
