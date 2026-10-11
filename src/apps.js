@@ -9,7 +9,15 @@ const object=value=>value!==null&&typeof value==='object'&&!Array.isArray(value)
 const clock=()=>Date.now()/1000;
 const forbidden=new Set(['__proto__','prototype','constructor','$resource']);
 const forbiddenSchema=new Set(['$ref','$dynamicRef','pattern','patternProperties']);
-const supportedRequests=new Set(['theme.preview','theme.apply','theme.revert']);
+const supportedRequests=new Set(['theme.preview','theme.apply','theme.revert','coordination.watch']);
+function watchInput(input){
+ if(Object.keys(input).some(key=>key!=='targets')||!Array.isArray(input.targets)||input.targets.length<1||input.targets.length>8)fault('Choose one to eight explicit watch targets');
+ const keys=new Set();
+ for(const target of input.targets){
+  if(!object(target)||Object.keys(target).some(key=>!['sessionId','workerId'].includes(key))||typeof target.sessionId!=='string'||!/^ahp-session:\/[^\s]{1,256}$/.test(target.sessionId)||target.workerId!==undefined&&(typeof target.workerId!=='string'||!target.workerId||target.workerId.length>256))fault('Invalid watch target');
+  const key=JSON.stringify([target.sessionId,target.workerId??null]);if(keys.has(key))fault('Duplicate watch target');keys.add(key);
+ }
+}
 const ajv=new Ajv2020({strict:false,allErrors:false,validateFormats:false,addUsedSchema:false});
 const validators=new Map();
 function checker(spec){
@@ -118,7 +126,8 @@ export class CanvasApps{
    const entry=app.manifest.requests[args.name];if(!entry)fault('Client request not declared');if(app.requests.filter(r=>r.status==='pending'||r.status==='unknown').length>=5)fault('Resolve pending client requests first',-32011);
    const input=data(args.input,300000);validate(input,entry.schema);
    if(!object(input))fault('Client action input must be an object');
-   const request={id:randomUUID(),name:args.name,action:entry.action,input,status:'pending',summary:typeof input.name==='string'?input.name.slice(0,120):'Previous theme',origin:caller.clientId??'agent',at:clock()};app.requests.push(request);
+   if(entry.action==='coordination.watch')watchInput(input);
+   const request={id:randomUUID(),name:args.name,action:entry.action,input,status:'pending',summary:entry.action==='coordination.watch'?'Live status for '+input.targets.length+' selected targets':typeof input.name==='string'?input.name.slice(0,120):'Previous theme',origin:caller.clientId??'agent',at:clock()};app.requests.push(request);
    const live=app.requests.filter(r=>['pending','unknown'].includes(r.status)),finished=app.requests.filter(r=>!['pending','unknown'].includes(r.status));app.requests=[...live,...finished.slice(-(20-live.length))].sort((a,b)=>a.at-b.at);
   }else if(name==='resolve'){
    const request=app.requests.find(r=>r.id===args.requestId);if(!request||request.status!=='pending')fault('Client request already resolved, admitted or superseded',-32011);
