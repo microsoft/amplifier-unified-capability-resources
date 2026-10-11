@@ -176,3 +176,13 @@ stale occurrence refusal, namespace compatibility and held intake. These are
 actual temporary byte/SQLite source tests with a controlled trusted verifier.
 Actual Native/Host verification, browser materialization, account and deployed
 acceptance remain separate composition gates.
+
+## Explicit saved-file reveal
+
+The coordinator-approved Main parity action described in
+[README](../README.md#reveal-a-saved-file-on-its-app-host) binds a saved artifact
+version to its named host and owner instance. [Reveal tests](../test/reveal.test.mjs)
+falsify arbitrary path execution, wrong-session or stale-host admission, symlink
+retargeting, source modification and repeat execution after an unknown outcome.
+This bounded OS presentation action grants no conversation execution or remote
+browser filesystem authority. Actual desktop acceptance remains separate.

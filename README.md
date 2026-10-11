@@ -522,3 +522,18 @@ explicit omissions; preview support does not imply automatic model ingestion.
 
 The PDF source and preservation checks are in test/pdf.test.mjs; browser renderer
 and downloaded-byte verification belong to the separately packaged web client.
+
+## Reveal a saved file on its app host
+
+A file-backed artifact advertises `fileReveal` with its named host, current owner
+instance and desktop availability. `canvas.reveal` requires the exact artifact ID,
+session, saved version, host ID and instance ID. The owner resolves the saved
+source again and refuses changed links, missing files or a different host.
+This opens the host file manager; it does not open a folder on a remote browser's
+computer. Headless hosts advertise unavailability and clients offer download.
+
+The existing event journal records intent before the operating-system request.
+An acknowledged request can return its saved receipt. A timeout, lost outcome or
+restart never repeats an uncertain request. The file, artifact body and version
+history are unchanged. Platform argument tests and installed consumer tests do
+not establish a physical desktop/file-manager acceptance.

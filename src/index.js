@@ -1,6 +1,7 @@
 import {MAX_PDF_BYTES,MAX_PDF_BODY,pdfContent,validatePdf} from './pdf.js';
 import {initializeSchema} from './authoritative-schema.js';
 import {mergeManaged} from './managed-files.js';
+import {createFileRevealer,revealArtifact} from './reveal.js';
 import {DatabaseSync} from 'node:sqlite';
 import {mkdirSync,writeFileSync,openSync,fsyncSync,closeSync,renameSync,readFileSync,readSync,fstatSync,existsSync} from 'node:fs';
 import {readFile,realpath,stat} from 'node:fs/promises';
@@ -70,9 +71,10 @@ async function definition(context,args){
  return {definition:value,body:{...(content!==undefined?{content}:{}),...(surface!==undefined?{surface}:{})}};
 }
 
-export function createResourcesCapability({directory,inspectSession,onChanged=()=>{},onMayBeIdle=()=>{},verifyTransferPayloadPlan,verifyOriginalAttachment}){
- const store=new ResourceStore(directory,{onMayBeIdle}),apps=new CanvasApps(store);const operations=['canvas.show','canvas.openFile','canvas.versions.inspect','canvas.versions.revise','canvas.versions.restore','canvas.reference','canvas.event',...apps.operations];
- const originalDescriptor=store.descriptor.bind(store);store.descriptor=(row,version)=>{const value=apps.decorate(originalDescriptor(row,version));if(!value.external)return value;const {external,editableUri,...rest}=value;return {...rest,...external};};
+export function createResourcesCapability({directory,inspectSession,onChanged=()=>{},onMayBeIdle=()=>{},verifyTransferPayloadPlan,verifyOriginalAttachment,fileRevealer=createFileRevealer()}){
+ const store=new ResourceStore(directory,{onMayBeIdle}),apps=new CanvasApps(store);const operations=['canvas.show','canvas.openFile','canvas.reveal','canvas.versions.inspect','canvas.versions.revise','canvas.versions.restore','canvas.reference','canvas.event',...apps.operations];
+ store.db.exec("CREATE INDEX IF NOT EXISTS file_reveal_command ON events(session,json_extract(payload,'$.commandId')) WHERE json_extract(payload,'$.kind')='file-reveal'");
+ const originalDescriptor=store.descriptor.bind(store);store.descriptor=(row,version)=>{const value=apps.decorate(originalDescriptor(row,version));if(value.path)value.fileReveal=fileRevealer.status();if(!value.external)return value;const {external,editableUri,...rest}=value;return {...rest,...external};};
  const manifest={version:1,topics:{canvas:{uri:'amplifier-capability://canvas',version:1,watch:true}},actions:Object.fromEntries(operations.map(operation=>[operation,{topic:'canvas',operation,method:'x-amplifier/capabilityAction'}]))};
  const context=async session=>{if(typeof session!=='string'||!session.startsWith('ahp-session:/'))fail('Canvas requires an explicit conversation');const value=await inspectSession(session);if(value.session!==session)fail('Conversation scope changed',-32009);return value;};
  const transfer=new ResourceEvidence(store,context),payloads=new HistoricalPayloads(store,context,verifyTransferPayloadPlan);
@@ -82,7 +84,8 @@ export function createResourcesCapability({directory,inspectSession,onChanged=()
  const quiescenceAccess=Object.fromEntries(['canvas.versions.inspect','canvas.reference','canvas.apps.inspect','attachments.inspect'].map(name=>[name,'read']));
  const action=(request,caller={})=>quiescenceAccess[request.operation]?performAction(request,caller):store.quiescence.effect(()=>performAction(request,caller));
  const performAction=async(request,caller={})=>{if(request.topic==='attachments')return attachments.action(request);if(request.topic!=='canvas'||!operations.includes(request.operation)||request.version!==1)fail('Canvas capability/version unavailable',-32601);const ctx=await context(request.channel),args=request.args||{},before=store.revision(ctx.session);if(args.sessionId&&args.sessionId!==ctx.session)fail('Canvas action cannot change conversation scope',-32009);let result;
-  if(apps.operations.includes(request.operation))result=apps.action(ctx,request.operation,args,caller);
+  if(request.operation==='canvas.reveal'){if(!integer(args.version,Number.MAX_SAFE_INTEGER))fail('Exact artifact version required');const row=store.row(ctx.session,args.id);result=await revealArtifact(store,fileRevealer,ctx.session,originalDescriptor(row,args.version),args,request.commandId);}
+  else if(apps.operations.includes(request.operation))result=apps.action(ctx,request.operation,args,caller);
   else if(request.operation==='canvas.show'||request.operation==='canvas.openFile'){const value=await definition(ctx,request.operation==='canvas.openFile'?{...args,kind:args.kind||'auto'}:args);result={artifact:store.save(ctx,value.definition,value.body)};}
   else if(request.operation==='canvas.versions.inspect'){const row=store.row(ctx.session,args.id);result={artifact:store.descriptor(row,args.version),...(args.includeSource?(originalDescriptor(row,args.version).kind==='pdf'?{source:{uri:store.descriptor(row,args.version).bodyUri,encoding:'base64',paged:true,maxPageBytes:262144}}:{body:store.body(ctx.session,args.id,args.version)}):{})};}
   else if(request.operation==='canvas.reference'){const row=store.row(ctx.session,args.id);result={reference:bodyURI(row.id,args.version??row.revision,ctx.session)};}
