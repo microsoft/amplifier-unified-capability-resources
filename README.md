@@ -537,3 +537,7 @@ An acknowledged request can return its saved receipt. A timeout, lost outcome or
 restart never repeats an uncertain request. The file, artifact body and version
 history are unchanged. Platform argument tests and installed consumer tests do
 not establish a physical desktop/file-manager acceptance.
+
+### Shared-history reference checks
+
+The existing held reference inspector is also available under an exact Recovery hold through `recoveryReferences: { version: 1 }`. It checks bounded explicit conversation identities without starting execution or granting history-deletion authority. Expired holds and incomplete or protected references refuse cleanup; owner records and uncertain receipts remain retained.
