@@ -202,3 +202,20 @@ A host-side agent can save/retrieve the item with `canvas.show` and select its I
 on the intended attached client with `canvas.select`; shared metadata does not
 force another client's selection. Offline import accepts only empty Settings
 bodies and retains any unexpected content at the original authority.
+
+### Image result presentation metadata
+
+`canvas.openFile` optionally accepts `imageResult: {version: 1, toolCallId,
+requestId, operation}` for `kind: 'image'` with `expectedSha256`. `toolCallId`
+is bounded to 1100 characters, `requestId` to 500, and operation is `generate`
+or `edit`. The owner verifies the existing file digest before saving and retains
+these fields plus `sha256` in the immutable definition and version descriptors.
+Metadata pages expose these small fields without hydrating image bodies.
+
+This is presentation provenance, not authorization or proof of a model/tool call.
+Clients match it only to the selected chat's actual admitted tool events and
+publication links. Callers cannot start/retry image work through this metadata.
+Native supplies it only when composition advertises exact `imageResultMetadata: 1`
+support after inspecting this owner's actual `canvas.openFile` schema. Legacy
+publications without metadata remain supported. Ordinary content edits do not
+inherit generation provenance into a new version.
