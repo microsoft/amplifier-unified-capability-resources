@@ -478,3 +478,21 @@ and [trusted port types](docs/fork-originals.v2.d.ts). The new mutation namespac
 incompatible with older writers, preserves v1 records verbatim and enrolls only
 on an explicit verified copy, not during an ordinary lookup. Keep the pre-upgrade
 owner snapshot for rollback. The strict existing prompt attachment scope remains.
+
+## PDF originals
+
+Workspace PDFs up to 20,000,000 bytes use the existing immutable body store and
+version index. PDF descriptors omit conditional editing. Opening a changed source
+creates a new version; older versions retain their original bytes. Text limits
+remain 4 MiB per source and 6 MiB per saved body.
+
+PDF bodies require standard resourceResolve followed by base64 resourceRead pages:
+add offset and limit (at most 262144 bytes) to the immutable body URI. Resolve
+returns the encoded JSON body's size and a SHA-256 etag. Consumers must verify the
+complete size and digest before decoding the original PDF data URI. Metadata reads
+never hydrate the PDF. includeSource inspection returns a paged source reference
+instead of a large inline body. Existing transfer budgets still apply and report
+explicit omissions; preview support does not imply automatic model ingestion.
+
+The PDF source and preservation checks are in test/pdf.test.mjs; browser renderer
+and downloaded-byte verification belong to the separately packaged web client.

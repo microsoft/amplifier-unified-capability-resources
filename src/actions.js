@@ -2,7 +2,7 @@ const string=maxLength=>({type:'string',maxLength}),positive={type:'integer',min
 const identity={id:string(100),sessionId:string(8192)},cas={...identity,expectedRevision:positive,expectedStateRevision:stateRevision};
 const entry=(description,properties,required=[])=>({description,inputSchema:{type:'object',properties,required,additionalProperties:false}});
 export const actionSchemas={
- 'canvas.show':entry('Save an immutable shared artifact in this conversation.',{kind:{enum:['text','markdown','code','html','mermaid','dot','json','jsonl','image','a2ui','browser','babylon']},title:string(200),content:string(6*1024*1024),path:string(8192),url:string(8192),surface:anyObject},['kind']),
+ 'canvas.show':entry('Save an immutable shared artifact in this conversation.',{kind:{enum:['text','markdown','code','html','mermaid','dot','json','jsonl','image','pdf','a2ui','browser','babylon']},title:string(200),content:string(6*1024*1024),path:string(8192),url:string(8192),surface:anyObject},['kind']),
  'canvas.openFile':entry('Read an existing workspace file into a shared artifact without changing its source.',{path:string(8192),kind:string(100),title:string(200)},['path']),
  'canvas.versions.inspect':entry('Inspect metadata and optionally the selected saved source.',{...identity,version:positive,includeSource:{type:'boolean'}},['id']),
  'canvas.versions.revise':entry('Create a new immutable artifact revision.',{...identity,expectedRevision:positive,title:string(200),content:string(6*1024*1024),surface:anyObject},['id','expectedRevision']),
