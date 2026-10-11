@@ -24,7 +24,7 @@ app-state snapshots are immutable content-addressed files; SQLite indexes their
 ownership, versions and metadata. Writes sync body and directory before committing
 the index. Saved history is retained; this package does not delete native files.
 File viewing resolves symlinks inside the authorized execution workspace and caps
-source input at 4 MiB and saved bodies at 6 MiB (including JSON escaping). Standard resource writes require the advertised latest URI
+text source input at 4 MiB and saved text bodies at 6 MiB (including JSON escaping). Images accept up to 8 MiB of original file bytes. Standard resource writes require the advertised latest URI
 and an exact `ifMatch` value; conflicts preserve both stored versions and the
 client's unfinished input. Editing a saved artifact never writes its source file.
 
@@ -34,6 +34,12 @@ file if the source changed after generation. A mismatch leaves existing versions
 untouched. Relative files resolve against the admitted execution directory,
 including relocated chats; the original working directory remains history
 identity. This action does not generate images or retry provider calls.
+
+Immutable image resource URIs resolve to a byte size and SHA-256 ETag. Read
+base64 byte pages with offset and limit (at most 256 KiB), then verify the whole
+saved JSON body digest. Unpaged reads remain compatible with existing viewers;
+the mutable latest URI retains its revision ETag for conditional writes. Catalog
+reads and byte pages do not hydrate unrelated artifact bodies.
 
 CanvasApps can request a bounded live status feed with a declared request whose
 action is `coordination.watch` and input is exactly
