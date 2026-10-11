@@ -63,3 +63,13 @@ test('reviewed legacy app definitions and current state preserve original bytes 
  }finally{owner.close();}
  assert.equal(hash(readFileSync(f.args.database)),before);assert.equal(importLegacyApps({...f.args,reviewed:{'legacy-app':'f'.repeat(64)}}).items[0].status,'retained');
 });
+
+
+test('legacy live Settings retain identity with empty bytes and reopen without copying preferences',async t=>{
+ const f=fixture(t),bytes='{}',id=hash(bytes);f.db.prepare('INSERT INTO state_resources VALUES(?,?)').run(id,bytes);
+ const row={id:'legacy-settings',sessionId:'legacy-session',title:'Settings',kind:'settings',revision:1,createdAt:1,body:{$resource:id},versions:[{version:1,kind:'settings',title:'Settings',body:{$resource:id},createdAt:1}]};
+ f.save([row,{...row,id:'invalid-settings',versions:[{...row.versions[0],body:f.body('private setting')}]}]);f.close();const before=hash(readFileSync(f.args.database));
+ const imported=importLegacyDocuments(f.args);assert.deepEqual(imported.items.map(item=>item.status),['imported','retained']);assert.match(imported.items[1].reason,/no saved content/);
+ const owner=f.owner();try{const saved=await owner.action({topic:'canvas',operation:'canvas.show',version:1,channel:f.args.session,args:{kind:'settings'}});assert.equal(saved.result.artifact.id,row.id);assert.equal(saved.result.artifact.editableUri,undefined);assert.deepEqual(owner.store.body(f.args.session,row.id),{});assert.equal(owner.store.list(f.args.session).items.length,1);}finally{owner.close();}
+ assert.equal(hash(readFileSync(f.args.database)),before);
+});

@@ -9,7 +9,7 @@ import {CanvasApps,validateLegacyAppSnapshot} from './apps.js';
 
 const sha=bytes=>createHash('sha256').update(bytes).digest('hex');
 const json=value=>JSON.stringify(value,(_key,v)=>v&&typeof v==='object'&&!Array.isArray(v)?Object.fromEntries(Object.entries(v).sort(([a],[b])=>a<b?-1:a>b?1:0)):v);
-const DOCUMENTS=new Set(['text','markdown','code','html','mermaid','dot','json','jsonl','image','a2ui','babylon']);
+const DOCUMENTS=new Set(['text','markdown','code','html','mermaid','dot','json','jsonl','image','a2ui','babylon','settings']);
 const MAX_METADATA=512*1024,MAX_BODY=6*1024*1024,MAX_CHECKPOINT=256*1024*1024,MAX_ARTIFACT=32*1024*1024;
 function bounded(value,name,max=4096){if(typeof value!=='string'||!value||value.length>max||value.includes('\0'))throw Error('Invalid '+name);return value;}
 function regular(path,max){if(lstatSync(path).isSymbolicLink()||realpathSync(path)!==resolve(path)||!lstatSync(path).isFile()||lstatSync(path).size>max)throw Error('Source must be an unlinked bounded regular file');return path;}
@@ -78,6 +78,7 @@ function importLegacy({database,destination,sourceSession,session,workingDirecto
      const retained=body(source,database,saved.body??saved.contentResource,appsOnly?['content','manifest']:undefined);total+=retained.bytes.length;if(total>MAX_ARTIFACT)throw Error('Selected artifact exceeds 32 MiB; source retained');
      const definition={kind:saved.kind??legacy.kind,title:bounded(saved.title??legacy.title,'title',200)};
      for(const key of ['path','workspacePath','url'])if(saved[key]!==undefined)definition[key]=bounded(saved[key],key);
+     if(definition.kind==='settings'&&(Object.keys(retained.value).length||Object.keys(definition).some(key=>!['kind','title'].includes(key))))throw Error('Live Settings must have no saved content or credentials; source retained');
      let snapshot,stateBody;
      if(appsOnly){stateBody=body(source,database,saved.stateResource,['state','stateRevision']);total+=stateBody.bytes.length;if(total>MAX_ARTIFACT)throw Error('Selected artifact exceeds 32 MiB; source retained');snapshot=validateLegacyAppSnapshot(retained.value.content,retained.value.manifest,stateBody.value.state,saved.version,stateBody.value.stateRevision);}
      return {...retained,definition,snapshot,stateBody,revision:saved.version,created:Number.isFinite(saved.createdAt)?saved.createdAt:0,messageId:typeof saved.messageId==='string'?saved.messageId:(legacy.publications??[]).find(link=>link.version===saved.version)?.messageId??null};

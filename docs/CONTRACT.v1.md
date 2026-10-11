@@ -186,3 +186,19 @@ falsify arbitrary path execution, wrong-session or stale-host admission, symlink
 retargeting, source modification and repeat execution after an unknown outcome.
 This bounded OS presentation action grants no conversation execution or remote
 browser filesystem authority. Actual desktop acceptance remains separate.
+
+
+### Live Settings canvas identity
+
+`canvas.show` also accepts `kind: settings`, without content, surface, path or URL.
+It explicitly creates or reopens one chat-scoped Settings item. Repeated opens,
+including after restart or import, reuse the existing identity without adding a
+version. The body is empty; credentials and preferences remain with their current
+owners. The metadata catalog advertises supported `canvasKinds`. Settings items
+are not editable documents: resource writes, saved-version edits/restores and
+canvas events are refused. Clients render their existing live Settings controls,
+keep selection and unfinished fields private, and use their normal draft guards.
+A host-side agent can save/retrieve the item with `canvas.show` and select its ID
+on the intended attached client with `canvas.select`; shared metadata does not
+force another client's selection. Offline import accepts only empty Settings
+bodies and retains any unexpected content at the original authority.
