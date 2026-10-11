@@ -28,6 +28,13 @@ source input at 4 MiB and saved bodies at 6 MiB (including JSON escaping). Stand
 and an exact `ifMatch` value; conflicts preserve both stored versions and the
 client's unfinished input. Editing a saved artifact never writes its source file.
 
+`canvas.openFile` accepts an optional `expectedSha256`. It checks the complete
+file bytes before saving, so generated-image delivery cannot attach a different
+file if the source changed after generation. A mismatch leaves existing versions
+untouched. Relative files resolve against the admitted execution directory,
+including relocated chats; the original working directory remains history
+identity. This action does not generate images or retry provider calls.
+
 CanvasApps can request a bounded live status feed with a declared request whose
 action is `coordination.watch` and input is exactly
 `{targets:[{sessionId:"ahp-session:/...",workerId?}]}` (one to eight unique targets).

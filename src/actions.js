@@ -3,7 +3,7 @@ const identity={id:string(100),sessionId:string(8192)},cas={...identity,expected
 const entry=(description,properties,required=[])=>({description,inputSchema:{type:'object',properties,required,additionalProperties:false}});
 export const actionSchemas={
  'canvas.show':entry('Save an immutable shared artifact in this conversation.',{kind:{enum:['text','markdown','code','html','mermaid','dot','json','jsonl','image','pdf','a2ui','browser','babylon']},title:string(200),content:string(6*1024*1024),path:string(8192),url:string(8192),surface:anyObject},['kind']),
- 'canvas.openFile':entry('Read an existing workspace file into a shared artifact without changing its source.',{path:string(8192),kind:string(100),title:string(200)},['path']),
+ 'canvas.openFile':entry('Read an existing workspace file into a shared artifact without changing its source. expectedSha256 refuses changed bytes before saving.',{path:string(8192),kind:string(100),title:string(200),expectedSha256:{type:'string',pattern:'^[a-f0-9]{64}$'}},['path']),
  'canvas.versions.inspect':entry('Inspect metadata and optionally the selected saved source.',{...identity,version:positive,includeSource:{type:'boolean'}},['id']),
  'canvas.versions.revise':entry('Create a new immutable artifact revision.',{...identity,expectedRevision:positive,title:string(200),content:string(6*1024*1024),surface:anyObject},['id','expectedRevision']),
  'canvas.versions.restore':entry('Restore a saved artifact definition as a new revision; never replay its effects.',{...identity,expectedRevision:positive,version:positive},['id','expectedRevision','version']),
