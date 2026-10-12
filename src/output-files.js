@@ -3,20 +3,22 @@ import {resolve,relative,isAbsolute,join,basename} from 'node:path';
 import {inflateSync} from 'node:zlib';
 export const MAX_OUTPUT_BYTES=8*1024*1024;
 /** Open each path component without following links; retain directory descriptors. */
-export function snapshotFile(root,value){
+export function snapshotFile(root,value,{maxBytes=MAX_OUTPUT_BYTES,strictRoot=false}={}){
  const workspace=realpathSync(root),path=resolve(workspace,value),rel=relative(workspace,path);
+ if(strictRoot&&(workspace!==root||value.split('/').some(p=>p==='.'||p==='..')))throw Error('Choose a canonical media path without symbolic links.');
  if(!rel||rel==='..'||rel.startsWith('../')||isAbsolute(rel)||value.includes('\0'))throw Error('Choose a regular file inside this conversation workspace.');
  const fds=[];let fd;
  try{
   const pieces=rel.split('/');let current=workspace;
-  fds.push(openSync(workspace,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW));
+  if(strictRoot){let prefix='/';fds.push(openSync(prefix,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW));for(const piece of workspace.split('/').filter(Boolean)){prefix=join(prefix,piece);const next=process.platform==='linux'?`/proc/self/fd/${fds.at(-1)}/${piece}`:prefix;fds.push(openSync(next,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW));if(process.platform!=='linux'&&realpathSync(prefix)!==prefix)throw Error('Media folder changed.');}}
+  else fds.push(openSync(workspace,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW));
   for(const piece of pieces.slice(0,-1)){
    current=join(current,piece);const parent=fds.at(-1),next=process.platform==='linux'?`/proc/self/fd/${parent}/${piece}`:current;
    const directory=openSync(next,constants.O_RDONLY|constants.O_DIRECTORY|constants.O_NOFOLLOW);fds.push(directory);
    if(process.platform!=='linux'&&(realpathSync(current)!==current||lstatSync(current).isSymbolicLink()))throw Error('Output folder changed.');
   }
   fd=openSync(process.platform==='linux'?`/proc/self/fd/${fds.at(-1)}/${pieces.at(-1)}`:path,constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);
-  const before=fstatSync(fd);if(!before.isFile()||before.size>MAX_OUTPUT_BYTES)throw Error('Choose a regular output no larger than 8 MiB.');
+  const before=fstatSync(fd);if(!before.isFile()||before.size>maxBytes)throw Error(`Choose a regular output no larger than ${maxBytes/1024/1024} MiB.`);
   const data=Buffer.alloc(before.size);let offset=0;
   while(offset<data.length){const n=readSync(fd,data,offset,Math.min(262144,data.length-offset),offset);if(!n)throw Error('Output changed while reading.');offset+=n;}
   const after=fstatSync(fd);if(['size','mtimeMs','ctimeMs','ino','dev'].some(k=>before[k]!==after[k])||process.platform!=='linux'&&realpathSync(path)!==path)throw Error('Output changed while reading.');

@@ -1,5 +1,27 @@
 # Resources public contract — v1
 
+## Saved inline motion media
+
+`outputs.attachMedia` captures GIF or MP4 bytes from the exact ordinary root
+workspace into immutable Outputs. Host/Native reverify the saved assistant
+reference before and after off-thread file capture. Structural checks bound
+files to 32 MiB, dimensions, GIF frame and decoded-pixel counts, and MP4 track
+and sample shapes. Ordinary outputs retain their 8 MiB bound. Structural
+acceptance does not prove that a browser decoded the file.
+
+`outputs.media` and scoped resource pages require the authenticated client to
+select the same conversation. Every page rechecks the message, output version,
+hash, relationship and ordinary root authority. Reviewed Main imports retain
+their original content-addressed message IDs; Native resolves them to exact
+canonical assistant references without granting input authority.
+
+`outputs.mediaReport` is a declared read-only ephemeral UI observation. Reports
+are bounded to 200 entries, monotonic within a player generation and sequence,
+and expire after 30 seconds. They create no command receipts, messages, model
+turns or authoritative render attestations. `media.test.mjs` and
+`output-migration.test.mjs` cover capture races, bounds, immutable bytes,
+scope/version rejection, fork references, restart and reviewed legacy import.
+
 This entry point organizes the existing owner promises and consumer obligations.
 It inherits the approved direction in [Vision](VISION.md), references the existing
 schemas and README, and adds no new wire format or runtime authority. Upstream AHP

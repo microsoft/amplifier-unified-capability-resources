@@ -1,5 +1,6 @@
 import {test} from 'node:test';import assert from 'node:assert/strict';import {DatabaseSync} from 'node:sqlite';import {mkdtempSync,realpathSync,readFileSync,rmSync,mkdirSync,writeFileSync} from 'node:fs';import {tmpdir} from 'node:os';import {join} from 'node:path';import {createHash} from 'node:crypto';
 import {importLegacyOutputs} from '../src/migration.js';import {createResourcesCapability} from '../src/index.js';
+import {validateMedia} from '../src/media-validation.js';
 const hash=b=>createHash('sha256').update(b).digest('hex');
 test('reviewed old output IDs, bytes, versions and comments survive explicit paged import',t=>{
  const root=realpathSync(mkdtempSync(join(tmpdir(),'output-migration-')));t.after(()=>rmSync(root,{recursive:true,force:true}));const database=join(root,'legacy.sqlite'),destination=join(root,'resources'),db=new DatabaseSync(database);db.exec('CREATE TABLE output_records(id TEXT PRIMARY KEY,session_id TEXT,created REAL,value TEXT);CREATE TABLE output_comments(id TEXT PRIMARY KEY,output_id TEXT,value TEXT);CREATE TABLE state_resources(id TEXT PRIMARY KEY,value TEXT);');
@@ -17,4 +18,18 @@ test('reviewed old output IDs, bytes, versions and comments survive explicit pag
  cap.close();
  assert.equal(importLegacyOutputs(args).items[0].status,'already-imported');assert.equal(importLegacyOutputs({...args,session:'ahp-session:/different'}).items[0].status,'retained');assert.deepEqual(readFileSync(database),original);
  assert.throws(()=>importLegacyOutputs({...args,expectedDatabaseSha256:'f'.repeat(64)}),/exact frozen/);
+});
+test('media import retains exact bytes and legacy message identity while rejecting changed structural evidence',t=>{
+ const root=realpathSync(mkdtempSync(join(tmpdir(),'media-migration-')));t.after(()=>rmSync(root,{recursive:true,force:true}));
+ const database=join(root,'main.sqlite'),destination=join(root,'resources'),db=new DatabaseSync(database);
+ db.exec('CREATE TABLE output_records(id TEXT PRIMARY KEY,session_id TEXT,created REAL,value TEXT);CREATE TABLE state_resources(id TEXT PRIMARY KEY,value TEXT);');
+ const data=Buffer.from('47494638396101000100800000ff00000000ff21f90404070000002c00000000010001000002024401003b','hex'),body=JSON.stringify({encoding:'base64',data:data.toString('base64')}),bodyId=hash(body),legacy='a'.repeat(32);
+ db.prepare('INSERT INTO state_resources VALUES(?,?)').run(bodyId,body);
+ const record={id:'motion',sessionId:'old',createdAt:1,kind:'media',title:'Saved animation',filename:'saved.gif',revision:1,version:1,linked:true,origin:{source:'agent',messageId:legacy},body:{$resource:bodyId},sha256:hash(data),bytes:data.length,media:validateMedia(data)};
+ for(const [id,media] of [['motion',record.media],['wrong',{...record.media,frameCount:2}]])db.prepare('INSERT INTO output_records VALUES(?,?,?,?)').run(id,'old',1,JSON.stringify({...record,id,media}));db.close();
+ const original=readFileSync(database),args={database,destination,sourceSession:'old',session:'ahp-session:/new',expectedDatabaseSha256:hash(original)},result=importLegacyOutputs(args);
+ assert.deepEqual(result.items.map(r=>[r.id,r.status]),[['motion','imported'],['wrong','retained']]);assert.match(result.items[1].reason,/media metadata/);
+ const cap=createResourcesCapability({directory:destination});t.after(()=>cap.close());const saved=cap.outputs.record(args.session,'motion');
+ assert.deepEqual(cap.outputs.content(saved),data);assert.equal(saved.origin.legacyMessageId,legacy);assert.equal(saved.kind,'media');assert.equal(saved.version,1);assert.deepEqual(saved.media,record.media);assert.deepEqual(readFileSync(database),original);
+ cap.close();assert.equal(importLegacyOutputs(args).items[0].status,'already-imported');
 });
