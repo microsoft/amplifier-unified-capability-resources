@@ -19,6 +19,9 @@ const columns={
  transfer_evidence:'id:TEXT source:TEXT native:TEXT hash:TEXT envelope:TEXT session:TEXT release:TEXT',
  transfer_payloads:'id:TEXT binding:TEXT records:TEXT',transfer_payload_pending:'id:TEXT binding:TEXT',
  legacy_document_imports:'source:TEXT id:TEXT fingerprint:TEXT session:TEXT metadata:TEXT',
+ output_records:'id:TEXT session:TEXT created:REAL value:TEXT',
+ output_receipts:'id:TEXT fingerprint:TEXT value:TEXT',
+ output_comments:'id:TEXT output:TEXT value:TEXT',
  fence:'id:INTEGER value:TEXT',receipts:'id:TEXT value:TEXT',
 };
 const namespaces={
@@ -32,6 +35,7 @@ const namespaces={
  // v1 is retained verbatim; v2 does not reinterpret or rewrite it.
  forkAttachments:{bit:128,tables:['fork_attachment_bindings']},
  forkOriginalsV2:{bit:256,tables:['fork_attachment_grants_v2']},
+ outputs:{bit:512,tables:['output_records','output_receipts','output_comments']},
 };
 // Completed public factory epochs: 63389cc, 2732a8c, 64a0dfe, 4c4148e,
 // 3498bd1. ResourceStore and reviewed offline imports also create partial stores.
@@ -40,9 +44,9 @@ const legacyProfiles=new Set([1,3,7,15,31,95,33,35,39,47,63,127]);
 const refuse=()=>{throw Object.assign(new Error('Resources authoritative schema unavailable; retained files require explicit recovery'),{code:-32009,executed:false});};
 function metadata(db,kind,{fresh=false}={}){
  const version=db.prepare('PRAGMA user_version').get().user_version;
- const rows=db.prepare("SELECT name,type FROM sqlite_schema WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' LIMIT 17").all();
+ const rows=db.prepare("SELECT name,type FROM sqlite_schema WHERE type IN ('table','view') AND name NOT LIKE 'sqlite_%' LIMIT 25").all();
  if(!rows.length){if(fresh&&version===0)return 0;refuse();}
- if(rows.length>16)refuse();
+ if(rows.length>24)refuse();
  const names=new Set(rows.map(row=>row.name));
  for(const row of rows){
   if(row.type!=='table'||!Object.hasOwn(columns,row.name))refuse();

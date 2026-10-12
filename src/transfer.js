@@ -9,7 +9,7 @@ const json=value=>JSON.stringify(value,(_key,item)=>item&&typeof item==='object'
 const bytes=value=>Buffer.byteLength(json(value));
 function checkIdentity(value){if(typeof value!=='string'||!value||value.length>8192)throw Error('Bounded transfer identity required');return value;}
 export class ResourceEvidence{
- constructor(store,context){this.store=store;this.context=context;this.db=store.db;initializeSchema(this.db,'resources',['transfer'],()=>this.db.exec(`CREATE TABLE IF NOT EXISTS transfer_exports(id TEXT PRIMARY KEY,session TEXT,envelope TEXT);CREATE TABLE IF NOT EXISTS transfer_evidence(id TEXT PRIMARY KEY,source TEXT,native TEXT,hash TEXT,envelope TEXT,session TEXT,release TEXT);CREATE INDEX IF NOT EXISTS transfer_evidence_session ON transfer_evidence(session,id);`));}
+ constructor(store,context,outputs){this.outputs=outputs;this.store=store;this.context=context;this.db=store.db;initializeSchema(this.db,'resources',['transfer'],()=>this.db.exec(`CREATE TABLE IF NOT EXISTS transfer_exports(id TEXT PRIMARY KEY,session TEXT,envelope TEXT);CREATE TABLE IF NOT EXISTS transfer_evidence(id TEXT PRIMARY KEY,source TEXT,native TEXT,hash TEXT,envelope TEXT,session TEXT,release TEXT);CREATE INDEX IF NOT EXISTS transfer_evidence_session ON transfer_evidence(session,id);`));}
  export=async(args)=>{const session=checkIdentity(args.session),id=checkIdentity(args.transferId);await this.context(session);const limit=Math.min(args.limitBytes??MAX,MAX);if(!Number.isSafeInteger(limit)||limit<1024)throw Error('Evidence budget must be at least 1024 bytes');const prior=this.db.prepare('SELECT * FROM transfer_exports WHERE id=?').get(id);if(prior){if(prior.session!==session)throw Error('Transfer identity belongs to another conversation');const value=JSON.parse(prior.envelope);if(value.bytes>limit||args.expectedRevision!==undefined&&args.expectedRevision!==value.revision)throw Error('Stored evidence bound or revision changed');return value;}
  const records=[],omissions=[],body={sourceSession:session,historicalOnly:true,records};let used=bytes(body);
  const add=record=>{const size=bytes(record)+1;if(records.length>=500||used+size>limit)return false;records.push(record);used+=size;return true;};
@@ -32,15 +32,27 @@ export class ResourceEvidence{
  }
  if(bodyCopied<files)omissions.push({collection:'attachment-bodies',count:files-bodyCopied,reason:'Unfinished or budget-exceeding attachment bytes remain on source disk'});
  if(copied<files)omissions.push({collection:'attachment-metadata',count:files-copied,reason:'bounded owner evidence'});
+ if(this.outputs){
+  const total=this.db.prepare('SELECT count(*) n FROM output_records WHERE session=?').get(session).n;let count=0,bodies=0,snapshots=0;
+  for(const row of this.db.prepare('SELECT value FROM output_records WHERE session=? ORDER BY created,id LIMIT 501').iterate(session)){
+   const value=JSON.parse(row.value);if(!add({kind:'output-metadata',value}))break;count++;
+   const comments=this.db.prepare('SELECT value FROM output_comments WHERE output=? ORDER BY rowid LIMIT 201').all(value.id);let notes=0;
+   for(const note of comments){if(!add({kind:'output-comment',value:JSON.parse(note.value)}))break;notes++;}
+   if(notes<comments.length)omissions.push({collection:'output-comments',outputId:value.id,count:comments.length-notes,reason:'bounded historical evidence; original notes retained'});
+   if(value.sha256){snapshots++;if(4*Math.ceil(value.bytes/3)+bytes({kind:'output-body',metadata:value,bodyBase64:''})+1<=limit-used&&records.length<500){const raw=this.outputs.content(value);if(add({kind:'output-body',metadata:value,bodyBase64:raw.toString('base64')}))bodies++;}}
+  }
+  if(count<total)omissions.push({collection:'output-metadata',count:total-count,reason:'bounded historical evidence; original outputs retained'});
+  if(bodies<snapshots)omissions.push({collection:'output-bodies',count:snapshots-bodies,reason:'bounded historical evidence; original snapshots retained'});
+ }
  const events=this.db.prepare('SELECT count(*) AS n FROM events WHERE session=?').get(session).n;if(events)omissions.push({collection:'canvas-events',count:events,reason:'Historical bodies only; client effects are not restored or replayed'});
  const external=this.db.prepare("SELECT count(*) AS n FROM versions v JOIN artifacts a ON a.id=v.artifact WHERE a.session=? AND json_extract(v.definition,'$.external') IS NOT NULL").get(session).n;if(external)omissions.push({collection:'external-resource-bodies',count:external,reason:'Referenced external provider bodies remain with their owner'});
  const bodyJson=json(body),sha256=hash(bodyJson);if(args.expectedRevision!==undefined&&args.expectedRevision!==sha256)throw Error('Evidence revision changed');const envelope={owner:OWNER,version:1,revision:sha256,sha256,bytes:Buffer.byteLength(bodyJson),encoding:'json-utf8',bodyJson,omissions,disposition:omissions.length?'partial':'complete',executionAuthority:false};this.db.prepare('INSERT INTO transfer_exports VALUES(?,?,?)').run(id,session,JSON.stringify(envelope));return envelope;
  };
  verify(value){if(value?.owner!==OWNER||value.version!==1||value.encoding!=='json-utf8'||value.executionAuthority!==false||typeof value.bodyJson!=='string'||value.bytes!==Buffer.byteLength(value.bodyJson)||value.bytes>MAX||value.sha256!==hash(value.bodyJson))throw Error('Historical resource evidence integrity mismatch');const body=JSON.parse(value.bodyJson);if(body?.historicalOnly!==true||!Array.isArray(body.records)||body.records.length>500)throw Error('Invalid resource evidence');
- for(const record of body.records)if(record.kind==='attachment-body'){
+ for(const record of body.records)if(['attachment-body','output-body'].includes(record.kind)){
   const meta=record.metadata,encoded=record.bodyBase64;
-  if(typeof encoded!=='string'||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)||meta?.status!=='committed')throw Error('Invalid historical attachment body');
-  const raw=Buffer.from(encoded,'base64');if(raw.toString('base64')!==encoded||raw.length!==meta.size||hash(raw)!==meta.sha)throw Error('Historical attachment body integrity mismatch');
+  if(typeof encoded!=='string'||!/^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/.test(encoded)||(record.kind==='attachment-body'&&meta?.status!=='committed'))throw Error('Invalid historical attachment body');
+  const raw=Buffer.from(encoded,'base64');if(raw.toString('base64')!==encoded||raw.length!==(record.kind==='output-body'?meta.bytes:meta.size)||hash(raw)!==(record.kind==='output-body'?meta.sha256:meta.sha))throw Error('Historical attachment body integrity mismatch');
  }
  return body;}
  stage=async(args)=>{const id=checkIdentity(args.transferId),source=checkIdentity(args.sourceHost),native=checkIdentity(args.nativeSessionId),value=args.evidence;this.verify(value);const prior=this.db.prepare('SELECT * FROM transfer_evidence WHERE id=?').get(id);if(prior&&(prior.source!==source||prior.native!==native||prior.hash!==value.sha256))throw Error('Transfer evidence identity changed');this.db.prepare('INSERT OR IGNORE INTO transfer_evidence VALUES(?,?,?,?,?,NULL,NULL)').run(id,source,native,value.sha256,JSON.stringify(value));return {owner:OWNER,revision:value.revision,sha256:value.sha256,staged:true,executionAuthority:false};};

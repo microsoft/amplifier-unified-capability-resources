@@ -24,9 +24,35 @@ app-state snapshots are immutable content-addressed files; SQLite indexes their
 ownership, versions and metadata. Writes sync body and directory before committing
 the index. Saved history is retained; this package does not delete native files.
 File viewing resolves symlinks inside the authorized execution workspace and caps
-source input at 4 MiB and saved bodies at 6 MiB (including JSON escaping). Standard resource writes require the advertised latest URI
+text source input at 4 MiB and saved text bodies at 6 MiB (including JSON escaping). Images accept up to 8 MiB of original file bytes. Standard resource writes require the advertised latest URI
 and an exact `ifMatch` value; conflicts preserve both stored versions and the
 client's unfinished input. Editing a saved artifact never writes its source file.
+
+`canvas.openFile` accepts an optional `expectedSha256`. It checks the complete
+file bytes before saving, so generated-image delivery cannot attach a different
+file if the source changed after generation. A mismatch leaves existing versions
+untouched. Relative files resolve against the admitted execution directory,
+including relocated chats; the original working directory remains history
+identity. This action does not generate images or retry provider calls.
+
+Immutable image resource URIs resolve to a byte size and SHA-256 ETag. Read
+base64 byte pages with offset and limit (at most 256 KiB), then verify the whole
+saved JSON body digest. Unpaged reads remain compatible with existing viewers;
+the mutable latest URI retains its revision ETag for conditional writes. Catalog
+reads and byte pages do not hydrate unrelated artifact bodies.
+
+CanvasApps can request a bounded live status feed with a declared request whose
+action is `coordination.watch` and input is exactly
+`{targets:[{sessionId:"ahp-session:/...",workerId?}]}` (one to eight unique targets).
+The client reviews the exact targets, validates them through the coordination
+owner, and binds access to its selected app and definition revision. The Resources
+owner only journals the review and claim; it does not read targets or start work.
+Authored code subscribes with `canvasApp.coordination.subscribe(listener)` or reads
+`canvasApp.coordination.getSnapshot()`. The version-1 snapshot contains sequence,
+status (off/live/unavailable), and bounded target status/recent report excerpts.
+It is ephemeral and independent of saved app state and unfinished edits.
+Clients revoke it on hiding, navigation, revision change, disconnect, or reload.
+Stored completion receipts never re-enable access. Use a new reviewed request.
 
 CanvasApps have separate definition and state revisions. Declared events and
 state patches are validated against bounded JSON Schema; external references and
@@ -478,3 +504,86 @@ and [trusted port types](docs/fork-originals.v2.d.ts). The new mutation namespac
 incompatible with older writers, preserves v1 records verbatim and enrolls only
 on an explicit verified copy, not during an ordinary lookup. Keep the pre-upgrade
 owner snapshot for rollback. The strict existing prompt attachment scope remains.
+
+## PDF originals
+
+Workspace PDFs up to 20,000,000 bytes use the existing immutable body store and
+version index. PDF descriptors omit conditional editing. Opening a changed source
+creates a new version; older versions retain their original bytes. Text limits
+remain 4 MiB per source and 6 MiB per saved body.
+
+PDF bodies require standard resourceResolve followed by base64 resourceRead pages:
+add offset and limit (at most 262144 bytes) to the immutable body URI. Resolve
+returns the encoded JSON body's size and a SHA-256 etag. Consumers must verify the
+complete size and digest before decoding the original PDF data URI. Metadata reads
+never hydrate the PDF. includeSource inspection returns a paged source reference
+instead of a large inline body. Existing transfer budgets still apply and report
+explicit omissions; preview support does not imply automatic model ingestion.
+
+The PDF source and preservation checks are in test/pdf.test.mjs; browser renderer
+and downloaded-byte verification belong to the separately packaged web client.
+
+## Reveal a saved file on its app host
+
+A file-backed artifact advertises `fileReveal` with its named host, current owner
+instance and desktop availability. `canvas.reveal` requires the exact artifact ID,
+session, saved version, host ID and instance ID. The owner resolves the saved
+source again and refuses changed links, missing files or a different host.
+This opens the host file manager; it does not open a folder on a remote browser's
+computer. Headless hosts advertise unavailability and clients offer download.
+
+The existing event journal records intent before the operating-system request.
+An acknowledged request can return its saved receipt. A timeout, lost outcome or
+restart never repeats an uncertain request. The file, artifact body and version
+history are unchanged. Platform argument tests and installed consumer tests do
+not establish a physical desktop/file-manager acceptance.
+
+### Shared-history reference checks
+
+The existing held reference inspector is also available under an exact Recovery hold through `recoveryReferences: { version: 1 }`. It checks bounded explicit conversation identities without starting execution or granting history-deletion authority. Expired holds and incomplete or protected references refuse cleanup; owner records and uncertain receipts remain retained.
+
+## Saved outputs and review
+
+The scoped `outputs` topic owns immutable file, dataset, writing, Git review,
+Canvas snapshot and external-reference relationships. Shared actions use the same
+schemas for user and agent callers. Local review notes do not publish externally.
+Mutations require the existing Host workspace guard and exact command identity;
+message links additionally require an original public message verified by Host.
+
+Bodies are stored once by SHA-256, capped at 8 MiB, and read through scoped
+`amplifier-output:` resources in base64 pages of at most 256 KiB. Clients verify
+the complete digest before downloading. Metadata pages do not hydrate bodies.
+Git snapshots suppress external diff/text conversion and configured filters;
+comments with line locations must name a line in the immutable diff.
+
+`outputs.image` and `outputs.images` select exact saved hashes. The trusted Native
+composition port `readOutputImages` supplies verified pixels to the current model
+request; ordinary tool JSON contains metadata only. Model inspection supports
+bounded noninterlaced 8-bit RGB/RGBA PNGs. Canvas can retain other image formats
+without claiming model visual evidence. Completed image publications also save
+an output atomically, with no repeated image generation.
+
+The trusted Host `outputForkReferences` / `forkOutputs` ports use Native's exact
+retained-message proof to copy only linked outputs within the authorized copy
+boundary. Saved bytes, local notes, parent/evidence relationships and referenced
+Canvas versions survive; new identities are allocated for the target. The receipt
+reconciles a lost acknowledgment without creating another copy. Original output
+or review-note changes after admission refuse reconciliation instead of guessing.
+
+`importLegacyOutputs` from the separate `/migration` entry point is offline and
+requires the owner closed, a frozen SQLite backup's reviewed SHA-256, and an
+explicit source-to-destination session mapping. Pages preserve original IDs,
+bytes, versions, links and notes; conflicts remain at the source. Import Canvas
+documents before outputs that reference them. Main's original message aliases
+are retained for Native to verify against canonical history at copy admission.
+This importer neither replays old output commands nor starts conversation work.
+Transfer exports carry output evidence as inactive historical records.
+
+`indexSavedImageOutputs` from `/migration` indexes an explicitly selected
+conversation's already saved generated-image versions while the owner is closed.
+Bounded pages verify immutable body hashes, preserve version and input origin,
+and reconcile repeated indexing through the original image receipt. Changed
+bodies remain untouched and are reported; no generation or other work runs.
+
+Validation: `test/outputs.test.mjs`, `test/output-migration.test.mjs`, existing
+resource publication, transfer, storage protection and schema fault tests.

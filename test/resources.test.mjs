@@ -12,3 +12,38 @@ test('artifact metadata pages are bounded and do not hydrate bodies',async()=>{c
 
 test('external MCP descriptors preserve provider authority without hydrating documents',async()=>{const f=await fixture();try{const ctx={session:'ahp-session:/one',workingDirectory:f.workspace},descriptor={id:'mcp-view',sessionId:ctx.session,kind:'mcp-app',title:'MCP app',bodyUri:'amplifier-mcp://views/mcp-view/body?session=one&revision=1',resources:{document:'amplifier-mcp://views/mcp-view/document'}};const created=await f.cap.registerExternal(ctx,descriptor);assert.equal(created.id,'mcp-view');assert.equal(created.bodyUri,descriptor.bodyUri);assert.equal(created.editableUri,undefined);const next=await f.cap.registerExternal(ctx,{...descriptor,bodyUri:descriptor.bodyUri.replace('revision=1','revision=2')});assert.equal(next.revision,2);assert.equal((await f.cap.read({uri:'amplifier-capability://canvas',scope:ctx.session})).data.canvasArtifacts.length,1);await assert.rejects(f.act('canvas.versions.revise',{id:created.id,expectedRevision:2,content:'bypass'}),e=>e.code===-32009);await assert.rejects(f.cap.registerExternal({...ctx,workingDirectory:f.root},descriptor),e=>e.code===-32009);await assert.rejects(f.cap.registerExternal({session:'ahp-session:/two',workingDirectory:f.workspace},{...descriptor,sessionId:'ahp-session:/two'}),e=>e.code===-32009);await assert.rejects(f.cap.registerExternal(ctx,{...descriptor,mcp:{large:'x'.repeat(8192)}}),/8 KiB/);}finally{await f.close();}});
 test('resource envelope remains below the transport bound and rejects oversized saves',async()=>{const f=await fixture();try{const result=await f.act('canvas.show',{kind:'text',content:'"'.repeat(2*1024*1024)});const body=await f.cap.resourceProvider.read({uri:result.result.artifact.bodyUri});assert.ok(Buffer.byteLength(JSON.stringify({jsonrpc:'2.0',id:1,result:body}))<16*1024*1024);await assert.rejects(f.act('canvas.show',{kind:'text',content:'x'.repeat(6*1024*1024)}),/6 MiB/);}finally{await f.close();}});
+
+
+test('Settings is on-demand, reusable, scoped and never stores settings values',async()=>{
+ const f=await fixture();try{
+  const read=scope=>f.cap.read({uri:'amplifier-capability://canvas',scope});
+  assert.equal((await read('ahp-session:/one')).data.canvasArtifacts.length,0);
+  assert.ok((await read('ahp-session:/one')).data.canvasKinds.includes('settings'));
+  const [{result:{artifact:a}},{result:{artifact:again}}]=await Promise.all([f.act('canvas.show',{kind:'settings'}),f.act('canvas.show',{kind:'settings'})]);
+  assert.equal(a.id,again.id);assert.equal(a.title,'Settings');assert.equal(a.editableUri,undefined);assert.equal(a.revision,1);
+  assert.deepEqual(JSON.parse((await f.cap.resourceProvider.read({uri:a.bodyUri})).data),{});
+  assert.equal((await read('ahp-session:/one')).data.canvasArtifacts.length,1);
+  assert.notEqual((await f.act('canvas.show',{kind:'settings'},'ahp-session:/two')).result.artifact.id,a.id);
+  for(const key of ['content','surface','path','url'])await assert.rejects(f.act('canvas.show',{kind:'settings',[key]:'private'}),/live view/);
+  await assert.rejects(f.act('canvas.openFile',{kind:'settings',path:'private-file'}),/live view/);
+  for(const operation of ['canvas.versions.revise','canvas.versions.restore'])await assert.rejects(f.act(operation,{id:a.id,expectedRevision:1,version:1,content:'private'}),e=>e.code===-32009);
+  await assert.rejects(f.cap.resourceProvider.write({uri:a.bodyUri.replace('/versions/1','/versions/latest'),encoding:'utf-8',data:'{"content":"private"}',ifMatch:a.etag}),e=>e.code===-32009);
+  await assert.rejects(f.act('canvas.event',{id:a.id,name:'private',value:'private'}),e=>e.code===-32009);
+  assert.equal((await read('ahp-session:/one')).revision,1);
+  f.cap.close();const reopened=createResourcesCapability({directory:join(f.root,'resources'),inspectSession:async session=>({session,workingDirectory:f.workspace})});
+  try{const result=await reopened.action({version:1,topic:'canvas',operation:'canvas.show',args:{kind:'settings'},channel:'ahp-session:/one',commandId:crypto.randomUUID()});assert.equal(result.result.artifact.id,a.id);assert.equal(reopened.store.revision('ahp-session:/one'),1);}finally{reopened.close();}
+ }finally{await f.close();}
+});
+
+test('image publication links remain exact per immutable version and require the saved digest',async()=>{
+ const f=await fixture();try{
+  const {createHash}=await import('node:crypto'),png=Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6nXcAAAAASUVORK5CYII=','base64'),sha=createHash('sha256').update(png).digest('hex');await writeFile(join(f.workspace,'image.png'),png);
+  const first={version:1,toolCallId:'native:call-one',requestId:'first',operation:'generate'},second={version:1,toolCallId:'native:call-two',requestId:'second',operation:'edit'};
+  const a=(await f.act('canvas.openFile',{kind:'image',path:'image.png',expectedSha256:sha,imageResult:first})).result.artifact;
+  const b=(await f.act('canvas.openFile',{kind:'image',path:'image.png',expectedSha256:sha,imageResult:second})).result.artifact;
+  assert.equal(a.id,b.id);assert.equal(b.revision,2);assert.deepEqual(b.imageResult,{...second,sha256:sha});assert.deepEqual(b.versions.map(v=>v.imageResult),[{...first,sha256:sha},{...second,sha256:sha}]);assert.deepEqual(f.cap.store.descriptor(f.cap.store.row(a.sessionId,a.id),1).imageResult,{...first,sha256:sha});
+  for(const imageResult of [{...first,version:2},{...first,toolCallId:''},{...first,operation:'execute'},{...first,content:'extra'}])await assert.rejects(f.act('canvas.openFile',{kind:'image',path:'image.png',expectedSha256:sha,imageResult}));
+  await assert.rejects(f.act('canvas.openFile',{kind:'image',path:'image.png',imageResult:first}));await assert.rejects(f.act('canvas.openFile',{kind:'image',path:'image.png',expectedSha256:'a'.repeat(64),imageResult:first}),/changed/);
+  f.cap.store.body=()=>{throw Error('Gallery metadata must not load image bytes')};assert.equal((await f.cap.read({uri:'amplifier-capability://canvas',scope:a.sessionId})).data.canvasArtifacts[0].versions[0].imageResult.requestId,'first');
+ }finally{await f.close()}
+});

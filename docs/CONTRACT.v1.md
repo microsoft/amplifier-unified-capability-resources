@@ -1,5 +1,27 @@
 # Resources public contract — v1
 
+## Saved inline motion media
+
+`outputs.attachMedia` captures GIF or MP4 bytes from the exact ordinary root
+workspace into immutable Outputs. Host/Native reverify the saved assistant
+reference before and after off-thread file capture. Structural checks bound
+files to 32 MiB, dimensions, GIF frame and decoded-pixel counts, and MP4 track
+and sample shapes. Ordinary outputs retain their 8 MiB bound. Structural
+acceptance does not prove that a browser decoded the file.
+
+`outputs.media` and scoped resource pages require the authenticated client to
+select the same conversation. Every page rechecks the message, output version,
+hash, relationship and ordinary root authority. Reviewed Main imports retain
+their original content-addressed message IDs; Native resolves them to exact
+canonical assistant references without granting input authority.
+
+`outputs.mediaReport` is a declared read-only ephemeral UI observation. Reports
+are bounded to 200 entries, monotonic within a player generation and sequence,
+and expire after 30 seconds. They create no command receipts, messages, model
+turns or authoritative render attestations. `media.test.mjs` and
+`output-migration.test.mjs` cover capture races, bounds, immutable bytes,
+scope/version rejection, fork references, restart and reviewed legacy import.
+
 This entry point organizes the existing owner promises and consumer obligations.
 It inherits the approved direction in [Vision](VISION.md), references the existing
 schemas and README, and adds no new wire format or runtime authority. Upstream AHP
@@ -176,3 +198,57 @@ stale occurrence refusal, namespace compatibility and held intake. These are
 actual temporary byte/SQLite source tests with a controlled trusted verifier.
 Actual Native/Host verification, browser materialization, account and deployed
 acceptance remain separate composition gates.
+
+## Explicit saved-file reveal
+
+The coordinator-approved Main parity action described in
+[README](../README.md#reveal-a-saved-file-on-its-app-host) binds a saved artifact
+version to its named host and owner instance. [Reveal tests](../test/reveal.test.mjs)
+falsify arbitrary path execution, wrong-session or stale-host admission, symlink
+retargeting, source modification and repeat execution after an unknown outcome.
+This bounded OS presentation action grants no conversation execution or remote
+browser filesystem authority. Actual desktop acceptance remains separate.
+
+
+### Live Settings canvas identity
+
+`canvas.show` also accepts `kind: settings`, without content, surface, path or URL.
+It explicitly creates or reopens one chat-scoped Settings item. Repeated opens,
+including after restart or import, reuse the existing identity without adding a
+version. The body is empty; credentials and preferences remain with their current
+owners. The metadata catalog advertises supported `canvasKinds`. Settings items
+are not editable documents: resource writes, saved-version edits/restores and
+canvas events are refused. Clients render their existing live Settings controls,
+keep selection and unfinished fields private, and use their normal draft guards.
+A host-side agent can save/retrieve the item with `canvas.show` and select its ID
+on the intended attached client with `canvas.select`; shared metadata does not
+force another client's selection. Offline import accepts only empty Settings
+bodies and retains any unexpected content at the original authority.
+
+### Image result presentation metadata
+
+`canvas.openFile` optionally accepts `imageResult: {version: 1, toolCallId,
+requestId, operation}` for `kind: 'image'` with `expectedSha256`. `toolCallId`
+is bounded to 1100 characters, `requestId` to 500, and operation is `generate`
+or `edit`. The owner verifies the existing file digest before saving and retains
+these fields plus `sha256` in the immutable definition and version descriptors.
+Metadata pages expose these small fields without hydrating image bodies.
+
+This is presentation provenance, not authorization or proof of a model/tool call.
+Clients match it only to the selected chat's actual admitted tool events and
+publication links. Callers cannot start/retry image work through this metadata.
+Native supplies it only when composition advertises exact `imageResultMetadata: 1`
+support after inspecting this owner's actual `canvas.openFile` schema. Legacy
+publications without metadata remain supported. Ordinary content edits do not
+inherit generation provenance into a new version.
+
+### Saved outputs and exact copy references
+
+The coordinator's Main parity composition advertises the `outputs` topic and
+shared bounded action schemas. Resources owns saved output bodies and local
+review notes; Native owns canonical message identity and copy boundaries. Host
+supplies original-message verification and serializes output changes against
+workspace movement. A Native-confirmed copy proof is required before Resources
+copies relationships; neither client-supplied text nor tool provenance alone is
+copy authority. Duplicate receipts must reconcile the original effect. See the
+README's saved-output contract and executable output/migration tests.
