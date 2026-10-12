@@ -23,7 +23,7 @@ const hash=path=>existsSync(path)?createHash('sha256').update(readFileSync(path)
 const evidence=root=>Object.fromEntries(['resources.sqlite','resources.sqlite-wal','resources-quiescence.sqlite','resources-quiescence.sqlite-wal'].map(name=>[name,hash(join(root,name))]));
 const unchanged=(root,before)=>{const after=evidence(root);for(const [name,digest] of Object.entries(before))if(digest!==null)assert.equal(after[name],digest,name);};
 const refused=root=>assert.throws(()=>open(root),error=>error.code===-32009&&error.executed===false&&/authoritative schema unavailable/.test(error.message));
-const tables=['artifacts','versions','topics','events','apps','app_states','app_definitions','attachments','attachment_metadata_revisions','transfer_exports','transfer_evidence','transfer_payloads','transfer_payload_pending','legacy_document_imports'];
+const tables=['artifacts','versions','topics','events','apps','app_states','app_definitions','attachments','attachment_metadata_revisions','transfer_exports','transfer_evidence','transfer_payloads','transfer_payload_pending','legacy_document_imports','output_records','output_receipts','output_comments'];
 function enrollImports(root){
  const path=join(root,'legacy-fixture.sqlite'),db=new DatabaseSync(path);db.exec('CREATE TABLE state(id INTEGER PRIMARY KEY,value TEXT)');db.prepare('INSERT INTO state VALUES(1,?)').run(JSON.stringify({revision:1,canvasArtifacts:[]}));db.close();
  importLegacyDocuments({database:path,destination:root,sourceSession:'original',session,workingDirectory:root});

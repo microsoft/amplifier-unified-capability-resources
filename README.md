@@ -541,3 +541,43 @@ not establish a physical desktop/file-manager acceptance.
 ### Shared-history reference checks
 
 The existing held reference inspector is also available under an exact Recovery hold through `recoveryReferences: { version: 1 }`. It checks bounded explicit conversation identities without starting execution or granting history-deletion authority. Expired holds and incomplete or protected references refuse cleanup; owner records and uncertain receipts remain retained.
+
+## Saved outputs and review
+
+The scoped `outputs` topic owns immutable file, dataset, writing, Git review,
+Canvas snapshot and external-reference relationships. Shared actions use the same
+schemas for user and agent callers. Local review notes do not publish externally.
+Mutations require the existing Host workspace guard and exact command identity;
+message links additionally require an original public message verified by Host.
+
+Bodies are stored once by SHA-256, capped at 8 MiB, and read through scoped
+`amplifier-output:` resources in base64 pages of at most 256 KiB. Clients verify
+the complete digest before downloading. Metadata pages do not hydrate bodies.
+Git snapshots suppress external diff/text conversion and configured filters;
+comments with line locations must name a line in the immutable diff.
+
+`outputs.image` and `outputs.images` select exact saved hashes. The trusted Native
+composition port `readOutputImages` supplies verified pixels to the current model
+request; ordinary tool JSON contains metadata only. Model inspection supports
+bounded noninterlaced 8-bit RGB/RGBA PNGs. Canvas can retain other image formats
+without claiming model visual evidence. Completed image publications also save
+an output atomically, with no repeated image generation.
+
+The trusted Host `outputForkReferences` / `forkOutputs` ports use Native's exact
+retained-message proof to copy only linked outputs within the authorized copy
+boundary. Saved bytes, local notes, parent/evidence relationships and referenced
+Canvas versions survive; new identities are allocated for the target. The receipt
+reconciles a lost acknowledgment without creating another copy. Original output
+or review-note changes after admission refuse reconciliation instead of guessing.
+
+`importLegacyOutputs` from the separate `/migration` entry point is offline and
+requires the owner closed, a frozen SQLite backup's reviewed SHA-256, and an
+explicit source-to-destination session mapping. Pages preserve original IDs,
+bytes, versions, links and notes; conflicts remain at the source. Import Canvas
+documents before outputs that reference them. Main's original message aliases
+are retained for Native to verify against canonical history at copy admission.
+This importer neither replays old output commands nor starts conversation work.
+Transfer exports carry output evidence as inactive historical records.
+
+Validation: `test/outputs.test.mjs`, `test/output-migration.test.mjs`, existing
+resource publication, transfer, storage protection and schema fault tests.

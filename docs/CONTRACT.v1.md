@@ -219,3 +219,14 @@ Native supplies it only when composition advertises exact `imageResultMetadata: 
 support after inspecting this owner's actual `canvas.openFile` schema. Legacy
 publications without metadata remain supported. Ordinary content edits do not
 inherit generation provenance into a new version.
+
+### Saved outputs and exact copy references
+
+The coordinator's Main parity composition advertises the `outputs` topic and
+shared bounded action schemas. Resources owns saved output bodies and local
+review notes; Native owns canonical message identity and copy boundaries. Host
+supplies original-message verification and serializes output changes against
+workspace movement. A Native-confirmed copy proof is required before Resources
+copies relationships; neither client-supplied text nor tool provenance alone is
+copy authority. Duplicate receipts must reconcile the original effect. See the
+README's saved-output contract and executable output/migration tests.
