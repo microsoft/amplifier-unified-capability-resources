@@ -23,7 +23,12 @@ export class Outputs{
  content(record){if(!record.sha256)return null;if(!/^[a-f0-9]{64}$/.test(record.sha256))refuse('Invalid saved output digest.',-32603);const fd=this.openBody(record);try{const data=readFileSync(fd);if(data.length!==record.bytes||sha(data)!==record.sha256)refuse('Saved output integrity changed; original records retained.',-32603);return data;}finally{closeSync(fd);}}
  openBody(record){const fd=openSync(join(this.directory,record.sha256+'.blob'),constants.O_RDONLY|constants.O_NOFOLLOW|constants.O_NONBLOCK);try{const info=fstatSync(fd);if(!info.isFile()||info.size!==record.bytes||info.size>MAX_OUTPUT_BYTES)refuse('Saved output integrity changed; original records retained.',-32603);return fd;}catch(error){closeSync(fd);throw error;}}
  uri(record){const uri=new URL('amplifier-output://saved/'+record.id);uri.searchParams.set('session',record.sessionId);uri.searchParams.set('sha256',record.sha256);return uri.href;}
- descriptor(record){return {...record,...(record.sha256&&record.sessionId?{resourceUri:this.uri(record)}:{})};}
+ descriptor(record){
+  // Main saved exact bodies before it added versionEvidence. Project their
+  // proven snapshot identity without rewriting original migration metadata.
+  const snapshot=record.versionEvidence===undefined&&/^[a-f0-9]{64}$/.test(record.sha256??'')&&Number.isSafeInteger(record.bytes)&&record.bytes>=0;
+  return {...record,...(snapshot?{versionEvidence:'snapshot'}:{}),...(record.sha256&&record.sessionId?{resourceUri:this.uri(record)}:{})};
+ }
  list(session,args={}){const offset=args.offset??0,limit=args.limit??20,rows=this.db.prepare(`SELECT value FROM output_records WHERE session=? ${args.includeUnlinked?'':"AND json_extract(value,'$.linked')=1"} ORDER BY created DESC,id LIMIT ? OFFSET ?`).all(session,limit+1,offset);return {items:rows.slice(0,limit).map(row=>this.descriptor(JSON.parse(row.value))),nextOffset:rows.length>limit?offset+limit:null};}
  read(session,args){const record=this.record(session,args.id),data=this.content(record),start=args.commentOffset??0,count=args.commentLimit??5,comments=this.db.prepare('SELECT value FROM output_comments WHERE output=? ORDER BY rowid LIMIT ? OFFSET ?').all(record.id,count+1,start),result={...this.descriptor(record),comments:comments.slice(0,count).map(row=>JSON.parse(row.value)),nextCommentOffset:comments.length>count?start+count:null};
   if(data){try{const text=new TextDecoder('utf-8',{fatal:true}).decode(data),offset=args.offset??0,limit=args.limit??4000;result.text=text.slice(offset,offset+limit);result.offset=offset;result.nextOffset=offset+limit<text.length?offset+limit:null;}catch{result.binary=true;}}return result;

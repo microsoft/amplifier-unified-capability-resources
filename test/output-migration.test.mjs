@@ -9,7 +9,12 @@ test('reviewed old output IDs, bytes, versions and comments survive explicit pag
  db.prepare('INSERT INTO output_records VALUES(?,?,?,?)').run(record.id,'old',1,JSON.stringify(record));db.prepare('INSERT INTO output_records VALUES(?,?,?,?)').run('old-two','old',2,JSON.stringify({...record,id:'old-two',parentId:'old-one',version:2}));db.prepare('INSERT INTO output_comments VALUES(?,?,?)').run('note','old-one',JSON.stringify({id:'note',outputId:'old-one',body:'Keep it',source:'ui',createdAt:1}));db.close();
  const original=readFileSync(database),args={database,destination,sourceSession:'old',session:'ahp-session:/new',expectedDatabaseSha256:hash(original),limit:1},first=importLegacyOutputs(args),second=importLegacyOutputs({...args,after:first.nextCursor});assert.deepEqual(first.items.map(r=>r.status),['imported']);assert.equal(second.items[0].status,'imported');assert.equal(second.nextCursor,null);
  let cap=createResourcesCapability({directory:destination,inspectSession:async session=>({session,workingDirectory:root})});assert.equal(cap.outputs.read(args.session,{id:'old-one'}).text,data);assert.equal(cap.outputs.read(args.session,{id:'old-one'}).comments[0].body,'Keep it');assert.equal(cap.outputs.record(args.session,'old-two').parentId,'old-one');
- assert.equal(cap.outputs.record(args.session,'old-one').origin.legacyMessageId,'1'.repeat(32));cap.close();
+ assert.equal(cap.outputs.record(args.session,'old-one').origin.legacyMessageId,'1'.repeat(32));
+ assert.equal(cap.outputs.record(args.session,'old-one').versionEvidence,undefined,'original metadata remains unchanged');
+ assert.equal(cap.outputs.list(args.session).items[0].versionEvidence,'snapshot');
+ assert.equal(cap.outputs.read(args.session,{id:'old-one'}).versionEvidence,'snapshot');
+ assert.equal(cap.outputs.descriptor({id:'external',sessionId:args.session,url:'https://example.invalid'}).versionEvidence,undefined,'external references are not snapshots');
+ cap.close();
  assert.equal(importLegacyOutputs(args).items[0].status,'already-imported');assert.equal(importLegacyOutputs({...args,session:'ahp-session:/different'}).items[0].status,'retained');assert.deepEqual(readFileSync(database),original);
  assert.throws(()=>importLegacyOutputs({...args,expectedDatabaseSha256:'f'.repeat(64)}),/exact frozen/);
 });
