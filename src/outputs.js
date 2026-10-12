@@ -44,7 +44,7 @@ export class Outputs{
  }
  previous(id,fingerprint){const row=this.db.prepare('SELECT * FROM output_receipts WHERE id=?').get(id);if(!row)return;if(row.fingerprint!==fingerprint)refuse('This saved request belongs to different output content or origin.',-32011);return {...JSON.parse(row.value),duplicate:true};}
  /** Called within Canvas's transaction for a verified completed image result. */
- captureImage(ctx,definition,body,id,revision,caller={}){
+ captureImage(ctx,definition,body,id,revision,caller={},createdAt=Date.now()/1000){
   if(!definition.imageResult)return;
   const prefix='data:image/png;base64,';if(typeof body.content!=='string'||!body.content.startsWith(prefix))refuse('Generated image must contain saved PNG bytes.');
   // Canvas already owns validation and rendering of its saved image. Capture
@@ -56,7 +56,7 @@ export class Outputs{
   const prior=this.previous(command,fingerprint);if(prior)return prior;
   if(this.db.prepare('SELECT count(*) n FROM output_records').get().n>=10000)refuse('Saved outputs have reached their local limit.');
   this.put(data,digest);
-  const value={id:randomUUID(),sessionId:ctx.session,kind:'file',title:definition.title,path:definition.path,filename:definition.path.split('/').at(-1),sha256:digest,bytes:data.length,canvasId:id,canvasVersion:revision,imageResult:definition.imageResult,origin:{source:['ui','agent','system'].includes(caller.origin)?caller.origin:'unknown',messageId:ctx.activeTurnId?ctx.activeTurnId+':input':null,turnId:ctx.activeTurnId??null},parentId:null,evidenceIds:[],versionEvidence:'snapshot',version:1,revision:1,linked:true,createdAt:Date.now()/1000};
+  const value={id:randomUUID(),sessionId:ctx.session,kind:'file',title:definition.title,path:definition.path,filename:definition.path.split('/').at(-1),sha256:digest,bytes:data.length,canvasId:id,canvasVersion:revision,imageResult:definition.imageResult,origin:{source:['ui','agent','system'].includes(caller.origin)?caller.origin:'unknown',messageId:ctx.activeTurnId?ctx.activeTurnId+':input':null,turnId:ctx.activeTurnId??null},parentId:null,evidenceIds:[],versionEvidence:'snapshot',version:1,revision:1,linked:true,createdAt};
   this.db.prepare('INSERT INTO output_records VALUES(?,?,?,?)').run(value.id,ctx.session,value.createdAt,canonical(value));
   this.db.prepare('INSERT INTO output_receipts VALUES(?,?,?)').run(command,fingerprint,canonical(value));return value;
  }

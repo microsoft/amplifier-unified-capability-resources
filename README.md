@@ -579,5 +579,11 @@ are retained for Native to verify against canonical history at copy admission.
 This importer neither replays old output commands nor starts conversation work.
 Transfer exports carry output evidence as inactive historical records.
 
+`indexSavedImageOutputs` from `/migration` indexes an explicitly selected
+conversation's already saved generated-image versions while the owner is closed.
+Bounded pages verify immutable body hashes, preserve version and input origin,
+and reconcile repeated indexing through the original image receipt. Changed
+bodies remain untouched and are reported; no generation or other work runs.
+
 Validation: `test/outputs.test.mjs`, `test/output-migration.test.mjs`, existing
 resource publication, transfer, storage protection and schema fault tests.

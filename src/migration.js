@@ -1,5 +1,6 @@
 import {initializeSchema} from './authoritative-schema.js';
 export {importLegacyOutputs} from './output-migration.js';
+export {indexSavedImageOutputs} from './output-index.js';
 /** Explicit offline selected-session migration; never a host startup reader. */
 import {DatabaseSync} from 'node:sqlite';
 import {createHash,randomUUID} from 'node:crypto';
