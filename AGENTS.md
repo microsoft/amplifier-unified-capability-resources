@@ -1,5 +1,7 @@
 # Resources owner entry point
 
+This codebase is yours: what it's for and how it's built are your call, and you'll keep building on it.
+
 Read [local vision](docs/VISION.md), [contract v1](docs/CONTRACT.v1.md) and
 [README](README.md) before changes. The approved family direction remains owned
 by the distribution; upstream AHP/ACP semantics remain authoritative. Keep changes
