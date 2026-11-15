@@ -1,0 +1,100 @@
+{
+  "audience": "Developers composing shared artifacts into a host",
+  "citations": [
+    {
+      "path": "README.md",
+      "ref": "80f6745fba27d84e16a8e65fcf4f31179dd99b96",
+      "sha256": "e098050768a73860566d3797d0a426a479950e267d76106cd0e5cdec6b9b8d6d",
+      "url": "https://github.com/microsoft/amplifier-unified-capability-resources/blob/80f6745fba27d84e16a8e65fcf4f31179dd99b96/README.md"
+    },
+    {
+      "path": "docs/CONTRACT.v1.md",
+      "ref": "80f6745fba27d84e16a8e65fcf4f31179dd99b96",
+      "sha256": "daa24d4e7e0c1f081ea344a755a6cd8a28aef9ee066f664a081bc28e5098aa8b",
+      "url": "https://github.com/microsoft/amplifier-unified-capability-resources/blob/80f6745fba27d84e16a8e65fcf4f31179dd99b96/docs/CONTRACT.v1.md"
+    }
+  ],
+  "display_name": "Amplifier Unified Resources",
+  "edges": [
+    {
+      "from": "host",
+      "relation": "uses",
+      "to": "self"
+    },
+    {
+      "from": "self",
+      "relation": "contains",
+      "to": "artifacts"
+    },
+    {
+      "from": "self",
+      "relation": "contains",
+      "to": "apps"
+    },
+    {
+      "from": "self",
+      "relation": "contains",
+      "to": "attachments"
+    },
+    {
+      "from": "client",
+      "relation": "uses",
+      "to": "host"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "self",
+      "kind": "self",
+      "label": "Amplifier Unified Resources",
+      "repository": "microsoft/amplifier-unified-capability-resources"
+    },
+    {
+      "id": "host",
+      "kind": "external",
+      "label": "Amplifier Unified host",
+      "repository": "microsoft/amplifier-unified-host"
+    },
+    {
+      "id": "artifacts",
+      "kind": "internal",
+      "label": "Immutable artifact versions"
+    },
+    {
+      "id": "apps",
+      "kind": "internal",
+      "label": "Canvas apps and shared state"
+    },
+    {
+      "id": "attachments",
+      "kind": "internal",
+      "label": "Scoped attachments"
+    },
+    {
+      "id": "client",
+      "kind": "external",
+      "label": "Browser or terminal client"
+    }
+  ],
+  "notes": [
+    "Client owns presentation and private drafts; resource storage does not own the source Conversation or execution.",
+    "Independent integration library; installing it alone does not provide a consumer app.",
+    "Historical imports are data, not live activation or permission to replay work."
+  ],
+  "page_kind": "capability library",
+  "purpose": "Store and version Canvas artifacts, interactive apps and attachments shared across conversations.",
+  "ref": "80f6745fba27d84e16a8e65fcf4f31179dd99b96",
+  "repository": "microsoft/amplifier-unified-capability-resources",
+  "roles": [],
+  "start_cta": {
+    "basis": "Existing approved README route; target release assets/availability not freshly audited in this plan.",
+    "label": "Integrate shared resources",
+    "url": "https://github.com/microsoft/amplifier-unified-capability-resources#get-started"
+  },
+  "summary": "Shared Canvas, app-state and attachment storage for a composed Amplifier Unified host.",
+  "supports_roles": [
+    "Experience",
+    "Conversation"
+  ],
+  "visibility": "private"
+}
