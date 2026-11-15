@@ -29,7 +29,7 @@ These links follow the distribution’s published preview branch; they do not cl
 
 These are preservation and bounded-work promises, not assertions of complete
 product acceptance. [Action schemas](../src/actions.js), [attachment schemas](../src/attachments.js)
-and [README](../README.md) retain the existing exact API definitions. This document
+and [public entry point](../src/index.js) retain the existing exact API definitions. This document
 references them rather than duplicating schemas or upstream protocol definitions.
 
 ## Consumer obligations and current limits
@@ -72,7 +72,7 @@ API are ratified here; novel scope changes require coordinator approval.
 ## Source-selection callback v1
 
 The registered `readTransferAttachmentMetadata` callback in the
-[README](../README.md#registered-source-attachment-metadata-selection) supplies
+[attachment implementation](../src/attachments.js) supplies
 indexed body-free scoped metadata with CAS revision refusal, 25-row/256-KiB pages,
 explicit cursor/coverage/omissions and existing immutable resource identities.
 [Metadata selection tests](../test/attachment-metadata.test.mjs) falsify missing
@@ -90,7 +90,7 @@ remains separate from this owner callback's source and installed tests.
 ## Authoritative startup schema admission
 
 The existing preservation and held-intake promises also apply to missing durable
-schema. [Startup admission](../README.md#authoritative-database-startup-admission)
+schema. [Startup admission](../src/authoritative-schema.js)
 validates the two retained owner journals before writable initialization, under
 the original process lease. Missing previously enrolled tables must refuse rather
 than erase visibility, an original command identity or an unknown effect barrier.
@@ -119,7 +119,7 @@ from a missing hold, legacy-unknown promotion, changed proof/identity, active-wo
 settlement, partial receipt/clear commits, or reacquisition/re-execution after lost
 reply or restart. Durable busy refusals cannot silently turn into acquisitions.
 The original proof signature and receipt survive process replacement; retries do
-not clear unrelated later holds. The [README](../README.md#authenticated-distribution-admission-abort)
+not clear unrelated later holds. The [participant implementation](../src/quiescence.js)
 defines the exact private callback shape. Actual aggregate/Host authenticated proof
 composition, package adoption and live deployment remain separate acceptance.
 
