@@ -2,16 +2,18 @@
   "audience": "Developers composing shared artifacts into a host",
   "citations": [
     {
+      "git_blob": "e45bb7dd0b2ba16ebac78a210ed9f557663fd051",
       "path": "README.md",
-      "ref": "80f6745fba27d84e16a8e65fcf4f31179dd99b96",
-      "sha256": "e098050768a73860566d3797d0a426a479950e267d76106cd0e5cdec6b9b8d6d",
-      "url": "https://github.com/microsoft/amplifier-unified-capability-resources/blob/80f6745fba27d84e16a8e65fcf4f31179dd99b96/README.md"
+      "ref": "800a4d90d42622fac7e14bbf916a3ec84508cd5e",
+      "sha256": "4d44ca23d26eee96c2dd88e31c39b0374427ef9d68cdf8451b5ae629a6249631",
+      "url": "https://github.com/microsoft/amplifier-unified-capability-resources/blob/800a4d90d42622fac7e14bbf916a3ec84508cd5e/README.md"
     },
     {
+      "git_blob": "e47ef04f33fcea875190c9976ace00f904260465",
       "path": "docs/CONTRACT.v1.md",
-      "ref": "80f6745fba27d84e16a8e65fcf4f31179dd99b96",
+      "ref": "800a4d90d42622fac7e14bbf916a3ec84508cd5e",
       "sha256": "daa24d4e7e0c1f081ea344a755a6cd8a28aef9ee066f664a081bc28e5098aa8b",
-      "url": "https://github.com/microsoft/amplifier-unified-capability-resources/blob/80f6745fba27d84e16a8e65fcf4f31179dd99b96/docs/CONTRACT.v1.md"
+      "url": "https://github.com/microsoft/amplifier-unified-capability-resources/blob/800a4d90d42622fac7e14bbf916a3ec84508cd5e/docs/CONTRACT.v1.md"
     }
   ],
   "display_name": "Amplifier Unified Resources",
@@ -83,7 +85,7 @@
   ],
   "page_kind": "capability library",
   "purpose": "Store and version Canvas artifacts, interactive apps and attachments shared across conversations.",
-  "ref": "80f6745fba27d84e16a8e65fcf4f31179dd99b96",
+  "ref": "800a4d90d42622fac7e14bbf916a3ec84508cd5e",
   "repository": "microsoft/amplifier-unified-capability-resources",
   "roles": [],
   "start_cta": {
@@ -96,5 +98,5 @@
     "Experience",
     "Conversation"
   ],
-  "visibility": "private"
+  "visibility": "public"
 }
